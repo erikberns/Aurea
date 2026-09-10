@@ -8,9 +8,9 @@ public record UsuarioDTO(Long id, String nombre, String apellido, String email, 
     public static UsuarioDTO desde(Usuario usuario) {
         return new UsuarioDTO(
                 usuario.getId(),
-                usuario.getNombre(),
-                usuario.getApellido(),
+                usuario.getFirstName(),
+                usuario.getLastName(),
                 usuario.getEmail(),
-                usuario.getRol());
+                usuario.getRole());
     }
 }

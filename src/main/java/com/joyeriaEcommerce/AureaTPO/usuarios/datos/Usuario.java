@@ -18,10 +18,10 @@ public class Usuario {
     private Long id;
 
     @Column(name = "first_name", nullable = false, length = 80)
-    private String nombre;
+    private String firstName;
 
     @Column(name = "last_name", nullable = false, length = 80)
-    private String apellido;
+    private String lastName;
 
     @Column(name = "name", length = 160)
     private String name;
@@ -30,49 +30,53 @@ public class Usuario {
     private String email;
 
     @Column(name = "password", nullable = false)
-    private String contrasenaHash;
+    private String password;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 30)
-    private Rol rol;
+    private Rol role;
 
     protected Usuario() {
     }
 
-    public Usuario(String nombre, String apellido, String email, String contrasenaHash, Rol rol) {
-        this.nombre = nombre;
-        this.apellido = apellido;
+    public Usuario(String firstName, String lastName, String email, String password, Rol role) {
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.email = email;
-        this.contrasenaHash = contrasenaHash;
-        this.rol = rol;
+        this.password = password;
+        this.role = role;
     }
 
     public Long getId() {
         return id;
     }
 
-    public String getNombre() {
-        return nombre;
+    public String getFirstName() {
+        return firstName;
     }
 
-    public String getApellido() {
-        return apellido;
+    public String getLastName() {
+        return lastName;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public String getEmail() {
         return email;
     }
 
-    public String getContrasenaHash() {
-        return contrasenaHash;
+    public String getPassword() {
+        return password;
     }
 
-    public Rol getRol() {
-        return rol;
+    public Rol getRole() {
+        return role;
     }
 
-    public void actualizarPerfil(String nombre, String apellido) {
-        this.nombre = nombre;
-        this.apellido = apellido;
+    public void actualizarPerfil(String firstName, String lastName) {
+        this.firstName = firstName;
+        this.lastName = lastName;
     }
 }

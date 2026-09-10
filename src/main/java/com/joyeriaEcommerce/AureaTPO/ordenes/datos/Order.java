@@ -22,14 +22,14 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "cantidad_producto")
-    private Integer cantidadProducto;
+    @Column(name = "quantity")
+    private Integer quantity;
 
-    @Column(name = "envio_a")
-    private String envioA;
+    @Column(name = "shipping_address")
+    private String shippingAddress;
 
-    @Column(name = "fecha")
-    private LocalDate fecha;
+    @Column(name = "order_date")
+    private LocalDate orderDate;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
@@ -49,10 +49,10 @@ public class Order {
     protected Order() {
     }
 
-    public Order(Integer cantidadProducto, String envioA, LocalDate fecha, OrderStatus status, Double total, Product product, Usuario user) {
-        this.cantidadProducto = cantidadProducto;
-        this.envioA = envioA;
-        this.fecha = fecha;
+    public Order(Integer quantity, String shippingAddress, LocalDate orderDate, OrderStatus status, Double total, Product product, Usuario user) {
+        this.quantity = quantity;
+        this.shippingAddress = shippingAddress;
+        this.orderDate = orderDate;
         this.status = status;
         this.total = total;
         this.product = product;
@@ -63,28 +63,28 @@ public class Order {
         return id;
     }
 
-    public Integer getCantidadProducto() {
-        return cantidadProducto;
+    public Integer getQuantity() {
+        return quantity;
     }
 
-    public void setCantidadProducto(Integer cantidadProducto) {
-        this.cantidadProducto = cantidadProducto;
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
     }
 
-    public String getEnvioA() {
-        return envioA;
+    public String getShippingAddress() {
+        return shippingAddress;
     }
 
-    public void setEnvioA(String envioA) {
-        this.envioA = envioA;
+    public void setShippingAddress(String shippingAddress) {
+        this.shippingAddress = shippingAddress;
     }
 
-    public LocalDate getFecha() {
-        return fecha;
+    public LocalDate getOrderDate() {
+        return orderDate;
     }
 
-    public void setFecha(LocalDate fecha) {
-        this.fecha = fecha;
+    public void setOrderDate(LocalDate orderDate) {
+        this.orderDate = orderDate;
     }
 
     public OrderStatus getStatus() {

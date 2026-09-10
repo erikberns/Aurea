@@ -45,7 +45,7 @@ public class ServicioDeUsuarios implements IUsuarios {
         Usuario usuario = usuarioRepository.findByEmailIgnoreCase(normalizarEmail(credenciales.email()))
                 .orElseThrow(CredencialesInvalidasException::new);
 
-        if (!passwordEncoder.matches(credenciales.contrasena(), usuario.getContrasenaHash())) {
+        if (!passwordEncoder.matches(credenciales.contrasena(), usuario.getPassword())) {
             throw new CredencialesInvalidasException();
         }
 

@@ -19,8 +19,8 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "activo")
-    private Boolean activo;
+    @Column(name = "active")
+    private Boolean active;
 
     @Column(name = "description")
     private String description;
@@ -28,11 +28,11 @@ public class Product {
     @Column(name = "name")
     private String name;
 
-    @Column(name = "precio")
-    private Double precio;
+    @Column(name = "price")
+    private Double price;
 
-    @Column(name = "precio_descuento")
-    private Double precioDescuento;
+    @Column(name = "discount_price")
+    private Double discountPrice;
 
     @Column(name = "stock")
     private Integer stock;
@@ -48,12 +48,12 @@ public class Product {
     protected Product() {
     }
 
-    public Product(Boolean activo, String description, String name, Double precio, Double precioDescuento, Integer stock, Category category, Discount discount) {
-        this.activo = activo;
+    public Product(Boolean active, String description, String name, Double price, Double discountPrice, Integer stock, Category category, Discount discount) {
+        this.active = active;
         this.description = description;
         this.name = name;
-        this.precio = precio;
-        this.precioDescuento = precioDescuento;
+        this.price = price;
+        this.discountPrice = discountPrice;
         this.stock = stock;
         this.category = category;
         this.discount = discount;
@@ -63,12 +63,12 @@ public class Product {
         return id;
     }
 
-    public Boolean getActivo() {
-        return activo;
+    public Boolean getActive() {
+        return active;
     }
 
-    public void setActivo(Boolean activo) {
-        this.activo = activo;
+    public void setActive(Boolean active) {
+        this.active = active;
     }
 
     public String getDescription() {
@@ -87,20 +87,20 @@ public class Product {
         this.name = name;
     }
 
-    public Double getPrecio() {
-        return precio;
+    public Double getPrice() {
+        return price;
     }
 
-    public void setPrecio(Double precio) {
-        this.precio = precio;
+    public void setPrice(Double price) {
+        this.price = price;
     }
 
-    public Double getPrecioDescuento() {
-        return precioDescuento;
+    public Double getDiscountPrice() {
+        return discountPrice;
     }
 
-    public void setPrecioDescuento(Double precioDescuento) {
-        this.precioDescuento = precioDescuento;
+    public void setDiscountPrice(Double discountPrice) {
+        this.discountPrice = discountPrice;
     }
 
     public Integer getStock() {
