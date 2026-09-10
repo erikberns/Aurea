@@ -22,7 +22,7 @@ public final class UsuarioExceptions {
     public static class CredencialesInvalidasException extends RuntimeException {
 
         public CredencialesInvalidasException() {
-            super("El email o la contrasena son incorrectos");
+            super("El email o la contraseña son incorrectos");
         }
     }
 }
