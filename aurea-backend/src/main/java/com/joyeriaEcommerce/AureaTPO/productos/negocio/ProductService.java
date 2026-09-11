@@ -26,6 +26,12 @@ public class ProductService {
     }
 
     @Transactional
+    public Product createProduct(String name, String description, Double price, Integer stock) {
+        Product newProduct = new Product(true, description, name, price, null, stock, null, null);
+        return productRepository.save(newProduct);
+    }
+
+    @Transactional
     public Product updatePrice(Long productId, Double newPrice) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
