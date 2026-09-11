@@ -1,5 +1,9 @@
 package com.joyeriaEcommerce.AureaTPO.usuarios.datos;
 
+import java.util.function.IntPredicate;
+
+import org.jspecify.annotations.Nullable;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -78,5 +82,10 @@ public class Usuario {
     public void actualizarPerfil(String firstName, String lastName) {
         this.firstName = firstName;
         this.lastName = lastName;
+    }
+
+    public @Nullable String getContrasenaHash() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getContrasenaHash'");
     }
 }
