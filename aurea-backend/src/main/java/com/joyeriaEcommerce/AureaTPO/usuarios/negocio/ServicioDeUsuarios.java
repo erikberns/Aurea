@@ -15,15 +15,17 @@ public class ServicioDeUsuarios implements IUsuarios {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final com.joyeriaEcommerce.AureaTPO.config.JwtService jwtService;
 
-    public ServicioDeUsuarios(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
+    public ServicioDeUsuarios(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, com.joyeriaEcommerce.AureaTPO.config.JwtService jwtService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     @Override
     @Transactional
-    public UsuarioDTO registrarCliente(DatosRegistro datos) {
+    public AuthResponse registrarCliente(DatosRegistro datos) {
         String email = normalizarEmail(datos.email());
         if (usuarioRepository.existsByEmailIgnoreCase(email)) {
             throw new EmailYaRegistradoException(email);
@@ -36,12 +38,14 @@ public class ServicioDeUsuarios implements IUsuarios {
                 passwordEncoder.encode(datos.contrasena()),
                 Rol.CLIENTE);
 
-        return UsuarioDTO.desde(usuarioRepository.save(usuario));
+        Usuario guardado = usuarioRepository.save(usuario);
+        String token = jwtService.generateToken(guardado);
+        return new AuthResponse(UsuarioDTO.desde(guardado), token);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public UsuarioDTO autenticar(Credenciales credenciales) {
+    public AuthResponse autenticar(Credenciales credenciales) {
         Usuario usuario = usuarioRepository.findByEmailIgnoreCase(normalizarEmail(credenciales.email()))
                 .orElseThrow(CredencialesInvalidasException::new);
 
@@ -49,7 +53,8 @@ public class ServicioDeUsuarios implements IUsuarios {
             throw new CredencialesInvalidasException();
         }
 
-        return UsuarioDTO.desde(usuario);
+        String token = jwtService.generateToken(usuario);
+        return new AuthResponse(UsuarioDTO.desde(usuario), token);
     }
 
     @Override

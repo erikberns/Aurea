@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.AuthResponse;
+
 @RestController
 @RequestMapping("/api/usuarios")
 public class UsuarioController {
@@ -25,12 +27,12 @@ public class UsuarioController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public UsuarioDTO registrar(@Valid @RequestBody RegistrarClienteRequest request) {
+    public AuthResponse registrar(@Valid @RequestBody RegistrarClienteRequest request) {
         return usuarios.registrarCliente(request.toDatos());
     }
 
     @PostMapping("/autenticar")
-    public UsuarioDTO autenticar(@Valid @RequestBody AutenticarRequest request) {
+    public AuthResponse autenticar(@Valid @RequestBody AutenticarRequest request) {
         return usuarios.autenticar(request.toCredenciales());
     }
 

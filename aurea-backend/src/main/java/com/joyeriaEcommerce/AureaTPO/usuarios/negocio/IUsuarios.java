@@ -2,9 +2,9 @@ package com.joyeriaEcommerce.AureaTPO.usuarios.negocio;
 
 public interface IUsuarios {
 
-    UsuarioDTO registrarCliente(DatosRegistro datos);
+    AuthResponse registrarCliente(DatosRegistro datos);
 
-    UsuarioDTO autenticar(Credenciales credenciales);
+    AuthResponse autenticar(Credenciales credenciales);
 
     UsuarioDTO consultarPerfil(Long usuarioId);
 

@@ -28,11 +28,12 @@ class ServicioDeUsuariosTests {
 
     @Test
     void registraUnClienteConEmailNormalizadoYContrasenaHasheada() {
-        UsuarioDTO registrado = usuarios.registrarCliente(
+        AuthResponse registrado = usuarios.registrarCliente(
                 new DatosRegistro("  Sofia ", " Perez ", " SOFIA@EXAMPLE.COM ", "ClaveSegura123"));
 
-        assertThat(registrado.email()).isEqualTo("sofia@example.com");
-        assertThat(registrado.rol()).isEqualTo(Rol.CLIENTE);
+        assertThat(registrado.usuario().email()).isEqualTo("sofia@example.com");
+        assertThat(registrado.usuario().rol()).isEqualTo(Rol.CLIENTE);
+        assertThat(registrado.token()).isNotNull();
 
         Usuario persistido = repository.findByEmailIgnoreCase("sofia@example.com").orElseThrow();
         assertThat(persistido.getContrasenaHash()).isNotEqualTo("ClaveSegura123");
@@ -52,8 +53,9 @@ class ServicioDeUsuariosTests {
     void autenticaConCredencialesCorrectas() {
         usuarios.registrarCliente(new DatosRegistro("Sofia", "Perez", "sofia@example.com", "ClaveSegura123"));
 
-        UsuarioDTO autenticado = usuarios.autenticar(new Credenciales("sofia@example.com", "ClaveSegura123"));
+        AuthResponse autenticado = usuarios.autenticar(new Credenciales("sofia@example.com", "ClaveSegura123"));
 
-        assertThat(autenticado.email()).isEqualTo("sofia@example.com");
+        assertThat(autenticado.usuario().email()).isEqualTo("sofia@example.com");
+        assertThat(autenticado.token()).isNotNull();
     }
 }
