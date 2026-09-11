@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 20;
+  font-size: 1.25rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.thin-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: #faf2ed;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: #d1c5b4;
+  border-radius: 4px;
+}
+
+body {
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
