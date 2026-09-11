@@ -26,6 +26,18 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductById(id));
     }
 
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Product> createProduct(@RequestBody CreateProductRequest request) {
+        Product newProduct = productService.createProduct(
+                request.name(),
+                request.description(),
+                request.price(),
+                request.stock()
+        );
+        return ResponseEntity.status(201).body(newProduct);
+    }
+
     @PatchMapping("/{id}/precio")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Product> updatePrice(@PathVariable Long id, @RequestParam Double newPrice) {
