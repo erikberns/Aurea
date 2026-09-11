@@ -11,9 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final com.joyeriaEcommerce.AureaTPO.categorias.datos.CategoryRepository categoryRepository;
 
-    public ProductService(ProductRepository productRepository) {
+    public ProductService(ProductRepository productRepository, com.joyeriaEcommerce.AureaTPO.categorias.datos.CategoryRepository categoryRepository) {
         this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     public java.util.List<Product> getAllProducts() {
@@ -26,8 +28,13 @@ public class ProductService {
     }
 
     @Transactional
-    public Product createProduct(String name, String description, Double price, Integer stock) {
-        Product newProduct = new Product(true, description, name, price, null, stock, null, null);
+    public Product createProduct(String name, String description, Double price, Integer stock, Long categoryId) {
+        com.joyeriaEcommerce.AureaTPO.categorias.datos.Category category = null;
+        if (categoryId != null) {
+            category = categoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
+        }
+        Product newProduct = new Product(true, description, name, price, null, stock, category, null);
         return productRepository.save(newProduct);
     }
 

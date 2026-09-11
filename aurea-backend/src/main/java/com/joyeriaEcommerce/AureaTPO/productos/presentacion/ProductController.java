@@ -33,7 +33,8 @@ public class ProductController {
                 request.name(),
                 request.description(),
                 request.price(),
-                request.stock()
+                request.stock(),
+                request.categoryId()
         );
         return ResponseEntity.status(201).body(newProduct);
     }
