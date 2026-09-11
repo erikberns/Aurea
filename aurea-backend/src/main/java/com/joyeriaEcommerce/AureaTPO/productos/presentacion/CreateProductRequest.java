@@ -4,5 +4,6 @@ public record CreateProductRequest(
         String name,
         String description,
         Double price,
-        Integer stock
+        Integer stock,
+        Long categoryId
 ) {}

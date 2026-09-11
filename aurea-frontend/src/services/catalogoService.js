@@ -8,7 +8,7 @@ export const catalogoService = {
       // Mapear productos del backend al formato del frontend
       let resultado = productos.map(p => ({
         id: p.id,
-        categoria: p.category ? p.category.name : "Joyería",
+        categoria: p.category ? p.category.description : "Joyería",
         nombre: p.name,
         descripcion: p.description,
         precio: p.price,
@@ -32,7 +32,7 @@ export const catalogoService = {
       const p = await getProductoById(joyaId);
       return {
         id: p.id,
-        categoria: p.category ? p.category.name : "Joyería",
+        categoria: p.category ? p.category.description : "Joyería",
         nombre: p.name,
         descripcion: p.description,
         precio: p.price,
@@ -49,7 +49,7 @@ export const catalogoService = {
   async listarCategorias() {
     try {
       const productos = await getProductos();
-      const categorias = productos.map(p => p.category ? p.category.name : "Joyería");
+      const categorias = productos.map(p => p.category ? p.category.description : "Joyería");
       return [...new Set(categorias)];
     } catch (e) {
       console.error(e);
