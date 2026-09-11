@@ -1,4 +1,6 @@
 package com.joyeriaEcommerce.AureaTPO.ordenes.eventos;
 
-public record OrderConfirmedEvent(Long orderId, Long productId, Integer quantity, Long userId) {
+import java.util.Map;
+
+public record OrderConfirmedEvent(Long orderId, Map<Long, Integer> productQuantities, Long userId) {
 }

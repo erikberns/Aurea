@@ -16,6 +16,16 @@ public class ProductController {
         this.productService = productService;
     }
 
+    @GetMapping
+    public ResponseEntity<java.util.List<Product>> getAllProducts() {
+        return ResponseEntity.ok(productService.getAllProducts());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.getProductById(id));
+    }
+
     @PatchMapping("/{id}/precio")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Product> updatePrice(@PathVariable Long id, @RequestParam Double newPrice) {

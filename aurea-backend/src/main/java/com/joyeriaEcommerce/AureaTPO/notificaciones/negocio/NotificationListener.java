@@ -15,7 +15,7 @@ public class NotificationListener {
         System.out.println("=============================================");
         System.out.println("🔔 [NOTIFICACIÓN] Enviando correo al usuario ID: " + event.userId());
         System.out.println("🔔 [NOTIFICACIÓN] Su orden #" + event.orderId() + " ha sido confirmada con éxito.");
-        System.out.println("🔔 [NOTIFICACIÓN] Detalles: " + event.quantity() + " unidades del producto ID " + event.productId());
+        System.out.println("🔔 [NOTIFICACIÓN] Productos comprados: " + (event.productQuantities() != null ? event.productQuantities().size() : 0));
         System.out.println("=============================================");
     }
 }

@@ -17,6 +17,12 @@ public class OrderController {
         this.orderService = orderService;
     }
 
+    @PostMapping
+    public ResponseEntity<Order> createOrder(@RequestBody @jakarta.validation.Valid CreateOrderRequest request, Authentication authentication) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(orderService.createOrder(request, username));
+    }
+
     @PostMapping("/{id}/confirmar")
     public ResponseEntity<Order> confirmOrder(@PathVariable Long id, Authentication authentication) {
         String username = authentication.getName();

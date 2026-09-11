@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 
@@ -22,8 +23,8 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "quantity")
-    private Integer quantity;
+    @OneToMany(mappedBy = "order", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<OrderItem> items = new java.util.ArrayList<>();
 
     @Column(name = "shipping_address")
     private String shippingAddress;
@@ -39,23 +40,17 @@ public class Order {
     private Double total;
 
     @ManyToOne
-    @JoinColumn(name = "product_id")
-    private Product product;
-
-    @ManyToOne
     @JoinColumn(name = "user_id")
     private Usuario user;
 
     protected Order() {
     }
 
-    public Order(Integer quantity, String shippingAddress, LocalDate orderDate, OrderStatus status, Double total, Product product, Usuario user) {
-        this.quantity = quantity;
+    public Order(String shippingAddress, LocalDate orderDate, OrderStatus status, Double total, Usuario user) {
         this.shippingAddress = shippingAddress;
         this.orderDate = orderDate;
         this.status = status;
         this.total = total;
-        this.product = product;
         this.user = user;
     }
 
@@ -63,12 +58,9 @@ public class Order {
         return id;
     }
 
-    public Integer getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(Integer quantity) {
-        this.quantity = quantity;
+    public void addItem(OrderItem item) {
+        items.add(item);
+        item.setOrder(this);
     }
 
     public String getShippingAddress() {
@@ -103,12 +95,12 @@ public class Order {
         this.total = total;
     }
 
-    public Product getProduct() {
-        return product;
+    public java.util.List<OrderItem> getItems() {
+        return items;
     }
 
-    public void setProduct(Product product) {
-        this.product = product;
+    public void setItems(java.util.List<OrderItem> items) {
+        this.items = items;
     }
 
     public Usuario getUser() {

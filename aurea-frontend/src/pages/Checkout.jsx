@@ -1,13 +1,42 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { PrimaryButton } from "../components/ui";
+import { createOrder, confirmOrder } from "../services/ordenesService";
 
 const fmt = new Intl.NumberFormat("es-AR");
 
 export default function Checkout() {
-  const { items, quitarItem, total } = useCart();
+  const { items, quitarItem, total, vaciarCarrito } = useCart();
   const { estaAutenticado } = useAuth();
+  const [shippingAddress, setShippingAddress] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleCheckout = async () => {
+    if (!shippingAddress.trim()) {
+      alert("Por favor ingresá una dirección de envío.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const formattedItems = items.map(item => ({
+        productId: item.id,
+        quantity: item.cantidad
+      }));
+      const orden = await createOrder(shippingAddress, formattedItems);
+      await confirmOrder(orden.id);
+      vaciarCarrito();
+      alert("¡Compra confirmada con éxito!");
+      navigate("/");
+    } catch (error) {
+      console.error(error);
+      alert("Hubo un error al procesar tu compra.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="w-full px-6 lg:px-16 mx-auto py-10">
@@ -60,12 +89,28 @@ export default function Checkout() {
                 <span>Envío</span>
                 <span>{total >= 60000 ? "Gratis" : "$4.500"}</span>
               </div>
+              <div className="mb-4">
+                <label className="block font-label-md text-label-md text-on-surface mb-2">
+                  Dirección de Envío
+                </label>
+                <input
+                  type="text"
+                  value={shippingAddress}
+                  onChange={(e) => setShippingAddress(e.target.value)}
+                  placeholder="Ej: Av. Libertador 1234, CABA"
+                  className="w-full border border-outline-variant rounded p-2 font-body-sm text-body-sm text-on-surface bg-surface-container-lowest"
+                  disabled={!estaAutenticado || loading}
+                />
+              </div>
               <div className="flex justify-between font-title-md text-title-md text-on-surface border-t border-outline-variant/40 pt-4 mb-6">
                 <span>Total</span>
                 <span>${fmt.format(total >= 60000 ? total : total + 4500)}</span>
               </div>
-              <PrimaryButton disabled={!estaAutenticado}>
-                {estaAutenticado ? "Confirmar y Pagar" : "Iniciá sesión para pagar"}
+              <PrimaryButton 
+                disabled={!estaAutenticado || loading} 
+                onClick={handleCheckout}
+              >
+                {loading ? "Procesando..." : (estaAutenticado ? "Confirmar y Pagar" : "Iniciá sesión para pagar")}
               </PrimaryButton>
               {!estaAutenticado && (
                 <p className="font-body-sm text-body-sm text-on-surface-variant text-center mt-3">
