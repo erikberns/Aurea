@@ -1,4 +1,4 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 
@@ -14,6 +14,11 @@ const NAV_LINKS = [
 export default function Header() {
   const { usuario, estaAutenticado } = useAuth();
   const { cantidadTotal } = useCart();
+  const location = useLocation();
+  
+  // Decodificamos el currentPath para compararlo correctamente con link.to
+  // ya que location.search devuelve los espacios como %20 y link.to tiene espacios literales (excepto el %26).
+  const currentPath = location.pathname + decodeURIComponent(location.search).replace(/&/g, "%26");
 
   return (
     <>
@@ -37,22 +42,22 @@ export default function Header() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
-            {NAV_LINKS.map((link) => (
-              <NavLink
-                key={link.label}
-                to={link.to}
-                end={link.to === "/"}
-                className={({ isActive }) =>
-                  `pb-1 font-label-md text-label-md transition-colors duration-200 ${
+            {NAV_LINKS.map((link) => {
+              const isActive = link.to === "/" ? currentPath === "/" : currentPath === link.to;
+              return (
+                <Link
+                  key={link.label}
+                  to={link.to}
+                  className={`pb-1 font-label-md text-label-md transition-colors duration-200 ${
                     isActive
                       ? "border-b-2 border-primary text-primary font-semibold"
                       : "text-on-surface-variant hover:text-on-surface"
-                  }`
-                }
-              >
-                {link.label}
-              </NavLink>
-            ))}
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
 
           <div className="flex items-center gap-4 lg:gap-6">
