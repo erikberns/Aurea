@@ -30,9 +30,6 @@ public class Usuario implements UserDetails {
     @Column(name = "last_name", nullable = false, length = 80)
     private String lastName;
 
-    @Column(name = "name", length = 160)
-    private String name;
-
     @Column(nullable = false, unique = true, length = 180)
     private String email;
 
@@ -64,10 +61,6 @@ public class Usuario implements UserDetails {
 
     public String getLastName() {
         return lastName;
-    }
-
-    public String getName() {
-        return name;
     }
 
     public String getEmail() {

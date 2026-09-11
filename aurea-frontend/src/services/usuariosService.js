@@ -22,7 +22,7 @@ const MOCK_DB_KEY = "aurea_mock_usuarios_db";
 // ---- Adaptador real: consume la API REST de ServicioDeUsuarios -----------
 const realAdapter = {
   registrarCliente: (datosRegistro) =>
-    httpRequest("/usuarios/registro", { method: "POST", body: datosRegistro, auth: false }),
+    httpRequest("/usuarios", { method: "POST", body: datosRegistro, auth: false }),
 
   autenticar: (credenciales) =>
     httpRequest("/usuarios/autenticar", { method: "POST", body: credenciales, auth: false }),
