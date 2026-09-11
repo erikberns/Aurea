@@ -1,8 +1,54 @@
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { JOYAS } from "../services/catalogoService";
 
 const fmt = new Intl.NumberFormat("es-AR");
+
+const JOYAS_MOCK = [
+  {
+    id: "j-001",
+    categoria: "Anillos apilables",
+    nombre: "Anillo Apilable 'Luna Nueva'",
+    descripcion: "Plata de Ley 925 con circonitas engastadas a mano.",
+    precio: 45000,
+    badge: "Más Vendido",
+    opciones: ["10", "12", "14", "16"],
+    imagen:
+      "https://images.unsplash.com/photo-1603561591411-07134e71a2a9?q=80&w=800&auto=format&fit=crop",
+  },
+  {
+    id: "j-002",
+    categoria: "Collares & Medallas",
+    nombre: "Collar Medalla 'Astro Solar'",
+    descripcion: "Baño de Oro 18k con cadena ajustable (40–45 cm).",
+    precio: 89000,
+    badge: "Tendencia",
+    opciones: ["Cadena 45 cm (Ajustable)"],
+    imagen:
+      "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=800&auto=format&fit=crop",
+  },
+  {
+    id: "j-003",
+    categoria: "Pulseras & Eslabones",
+    nombre: "Pulsera Eslabones 'Aura Link'",
+    descripcion: "Plata de Ley 925 rodiada antidesgaste de brillo espejo.",
+    precio: 65000,
+    badge: "Favorito",
+    opciones: ["17 cm + 3 cm extensión"],
+    imagen:
+      "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=800&auto=format&fit=crop",
+  },
+  {
+    id: "j-004",
+    categoria: "Pendientes & Huggies",
+    nombre: "Pendientes Aros 'Demi Huggies'",
+    descripcion: "Plata 925 con baño de Oro 18k y cierre click seguro.",
+    precio: 39000,
+    badge: "Esenciales",
+    opciones: ["12 mm (Mini aro)"],
+    imagen:
+      "https://images.unsplash.com/photo-1630019852942-f89202989a59?q=80&w=800&auto=format&fit=crop",
+  }
+];
 
 const CATEGORIAS = [
   {
@@ -41,7 +87,7 @@ const CATEGORIAS = [
 
 const DESTACADOS = [
   {
-    joya: JOYAS[0],
+    joya: JOYAS_MOCK[0],
     material: "Plata 925",
     tag: { label: "Más Vendido", cls: "bg-primary-container text-on-primary" },
     stock: { label: "En Stock Inmediato", dot: "bg-emerald-600", text: "text-emerald-800" },
@@ -50,7 +96,7 @@ const DESTACADOS = [
     nota: "Reserva segura por 5 minutos",
   },
   {
-    joya: JOYAS[1],
+    joya: JOYAS_MOCK[1],
     material: "Vermeil 18k",
     tag: { label: "Edición Especial", cls: "bg-secondary-container text-on-secondary-container" },
     stock: { label: "En Stock Inmediato", dot: "bg-emerald-600", text: "text-emerald-800" },
@@ -59,7 +105,7 @@ const DESTACADOS = [
     nota: "Envío Gratis aplicado",
   },
   {
-    joya: JOYAS[2],
+    joya: JOYAS_MOCK[2],
     material: "Plata 925",
     tag: null,
     stock: { label: "Últimas 4 unidades", dot: "bg-amber-600", text: "text-amber-800" },
@@ -68,7 +114,7 @@ const DESTACADOS = [
     nota: "Envío Gratis a todo el país",
   },
   {
-    joya: JOYAS[3],
+    joya: JOYAS_MOCK[3],
     material: "Vermeil 18k",
     tag: { label: "Hipoalergénico", cls: "bg-primary-fixed text-on-primary-fixed" },
     stock: { label: "En Stock Inmediato", dot: "bg-emerald-600", text: "text-emerald-800" },
