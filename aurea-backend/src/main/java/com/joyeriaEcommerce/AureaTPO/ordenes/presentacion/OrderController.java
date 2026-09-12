@@ -20,7 +20,11 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<Order> createOrder(@RequestBody @jakarta.validation.Valid CreateOrderRequest request, Authentication authentication) {
         String username = authentication.getName();
-        return ResponseEntity.ok(orderService.createOrder(request, username));
+        java.util.Map<Long, Integer> itemsMap = new java.util.HashMap<>();
+        for (CreateOrderRequest.CreateOrderItemRequest item : request.getItems()) {
+            itemsMap.put(item.getProductId(), item.getQuantity());
+        }
+        return ResponseEntity.ok(orderService.createOrder(request.getShippingAddress(), itemsMap, username));
     }
 
     @PostMapping("/{id}/confirmar")
