@@ -34,36 +34,14 @@ public class OrderService {
     }
 
     @Transactional
-    public Order createOrder(String shippingAddress, Map<Long, Integer> items, String username) {
-        Usuario user = usuarioRepository.findByEmailIgnoreCase(username)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
-
-        Order order = new Order(shippingAddress, LocalDate.now(), OrderStatus.PENDING, 0.0, user);
-        double total = 0.0;
-
-        for (Map.Entry<Long, Integer> entry : items.entrySet()) {
-            Long productId = entry.getKey();
-            Integer quantity = entry.getValue();
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + productId));
-
-            if (product.getStock() < quantity) {
-                throw new IllegalStateException("Stock insuficiente para el producto: " + product.getName());
-            }
-
-            double price = product.getDiscountPrice() != null ? product.getDiscountPrice() : product.getPrice();
-            OrderItem orderItem = new OrderItem(order, product, quantity, price);
-            order.addItem(orderItem);
-            
-            total += price * quantity;
-        }
-
-        order.setTotal(total);
+    public Order saveOrder(Order order) {
         return orderRepository.save(order);
     }
 
+
+
     @Transactional
-    public Order confirmOrder(Long orderId, String username) {
+    public OrderDTO confirmOrder(Long orderId, String username) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Orden no encontrada"));
 
@@ -90,25 +68,25 @@ public class OrderService {
                 savedOrder.getUser().getId()
         ));
 
-        return savedOrder;
+        return OrderDTO.desde(savedOrder);
     }
 
     @Transactional
-    public Order approveReturn(Long orderId) {
+    public OrderDTO approveReturn(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Orden no encontrada"));
 
         order.setStatus(OrderStatus.CANCELLED);
-        return orderRepository.save(order);
+        return OrderDTO.desde(orderRepository.save(order));
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<Order> getOrdersByUser(String username) {
-        return orderRepository.findByUser_EmailOrderByOrderDateDesc(username);
+    public java.util.List<OrderDTO> getOrdersByUser(String username) {
+        return orderRepository.findByUser_EmailOrderByOrderDateDesc(username).stream().map(OrderDTO::desde).toList();
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<Order> getAllOrders() {
-        return orderRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "orderDate"));
+    public java.util.List<OrderDTO> getAllOrders() {
+        return orderRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "orderDate")).stream().map(OrderDTO::desde).toList();
     }
 }
