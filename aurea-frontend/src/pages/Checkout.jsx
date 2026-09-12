@@ -11,12 +11,31 @@ export default function Checkout() {
   const { items, quitarItem, total, vaciarCarrito } = useCart();
   const { estaAutenticado } = useAuth();
   const [shippingAddress, setShippingAddress] = useState("");
+  const [addressError, setAddressError] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Billing states
+  const [showBilling, setShowBilling] = useState(false);
+  const [cardName, setCardName] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiry, setExpiry] = useState("");
+  const [cvv, setCvv] = useState("");
+
   const navigate = useNavigate();
 
-  const handleCheckout = async () => {
+  const openBillingForm = () => {
     if (!shippingAddress.trim()) {
-      alert("Por favor ingresá una dirección de envío.");
+      setAddressError(true);
+      return;
+    }
+    setAddressError(false);
+    setShowBilling(true);
+  };
+
+  const processPayment = async (e) => {
+    e.preventDefault();
+    if (!cardName || !cardNumber || !expiry || !cvv) {
+      alert("Por favor completá todos los datos de facturación.");
       return;
     }
     setLoading(true);
@@ -35,6 +54,7 @@ export default function Checkout() {
       alert("Hubo un error al procesar tu compra.");
     } finally {
       setLoading(false);
+      setShowBilling(false);
     }
   };
 
@@ -96,11 +116,19 @@ export default function Checkout() {
                 <input
                   type="text"
                   value={shippingAddress}
-                  onChange={(e) => setShippingAddress(e.target.value)}
+                  onChange={(e) => {
+                    setShippingAddress(e.target.value);
+                    if (e.target.value.trim()) setAddressError(false);
+                  }}
                   placeholder="Ej: Av. Libertador 1234, CABA"
-                  className="w-full border border-outline-variant rounded p-2 font-body-sm text-body-sm text-on-surface bg-surface-container-lowest"
+                  className={`w-full border rounded p-2 font-body-sm text-body-sm text-on-surface bg-surface-container-lowest ${
+                    addressError ? "border-error" : "border-outline-variant"
+                  }`}
                   disabled={!estaAutenticado || loading}
                 />
+                {addressError && (
+                  <p className="font-body-sm text-body-sm text-error mt-1">Por favor ingresá una dirección de envío.</p>
+                )}
               </div>
               <div className="flex justify-between font-title-md text-title-md text-on-surface border-t border-outline-variant/40 pt-4 mb-6">
                 <span>Total</span>
@@ -108,9 +136,9 @@ export default function Checkout() {
               </div>
               <PrimaryButton 
                 disabled={!estaAutenticado || loading} 
-                onClick={handleCheckout}
+                onClick={openBillingForm}
               >
-                {loading ? "Procesando..." : (estaAutenticado ? "Confirmar y Pagar" : "Iniciá sesión para pagar")}
+                {loading ? "Procesando..." : (estaAutenticado ? "Ingresar Datos de Pago" : "Iniciá sesión para pagar")}
               </PrimaryButton>
               {!estaAutenticado && (
                 <p className="font-body-sm text-body-sm text-on-surface-variant text-center mt-3">
@@ -125,6 +153,82 @@ export default function Checkout() {
                 </p>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Facturación */}
+      {showBilling && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1e1b18]/60 p-4">
+          <div className="bg-surface-container-lowest border border-outline-variant/40 rounded-sm p-6 max-w-md w-full relative shadow-lg">
+            <button
+              onClick={() => setShowBilling(false)}
+              className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface transition-colors"
+              disabled={loading}
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            <h2 className="font-headline-sm text-headline-sm text-on-surface mb-6">Datos de Facturación</h2>
+            <form onSubmit={processPayment} className="space-y-4">
+              <div>
+                <label className="block font-label-md text-label-md text-on-surface mb-2">Nombre en la tarjeta</label>
+                <input
+                  type="text"
+                  value={cardName}
+                  onChange={(e) => setCardName(e.target.value)}
+                  placeholder="Ej: Juan Pérez"
+                  className="w-full border border-outline-variant rounded-sm p-2.5 font-body-sm text-body-sm text-on-surface bg-surface-container-lowest focus:border-primary focus:outline-none transition-colors"
+                  disabled={loading}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block font-label-md text-label-md text-on-surface mb-2">Número de tarjeta</label>
+                <input
+                  type="text"
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value)}
+                  placeholder="Ej: 4500 1234 5678 9010"
+                  className="w-full border border-outline-variant rounded-sm p-2.5 font-body-sm text-body-sm text-on-surface bg-surface-container-lowest focus:border-primary focus:outline-none transition-colors"
+                  disabled={loading}
+                  maxLength="19"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-label-md text-label-md text-on-surface mb-2">Vencimiento</label>
+                  <input
+                    type="text"
+                    value={expiry}
+                    onChange={(e) => setExpiry(e.target.value)}
+                    placeholder="MM/AA"
+                    className="w-full border border-outline-variant rounded-sm p-2.5 font-body-sm text-body-sm text-on-surface bg-surface-container-lowest focus:border-primary focus:outline-none transition-colors"
+                    disabled={loading}
+                    maxLength="5"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-label-md text-label-md text-on-surface mb-2">CVV</label>
+                  <input
+                    type="password"
+                    value={cvv}
+                    onChange={(e) => setCvv(e.target.value)}
+                    placeholder="123"
+                    className="w-full border border-outline-variant rounded-sm p-2.5 font-body-sm text-body-sm text-on-surface bg-surface-container-lowest focus:border-primary focus:outline-none transition-colors"
+                    disabled={loading}
+                    maxLength="4"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="pt-4">
+                <PrimaryButton type="submit" disabled={loading} className="w-full py-3">
+                  {loading ? "Procesando pago..." : `Pagar $${fmt.format(total >= 60000 ? total : total + 4500)}`}
+                </PrimaryButton>
+              </div>
+            </form>
           </div>
         </div>
       )}
