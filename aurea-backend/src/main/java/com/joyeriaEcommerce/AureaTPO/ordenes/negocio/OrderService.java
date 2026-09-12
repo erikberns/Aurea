@@ -25,12 +25,14 @@ public class OrderService {
     private final ProductDAO productDAO;
     private final UsuarioRepository usuarioRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final CheckoutMetricsState checkoutMetricsState;
 
-    public OrderService(OrderRepository orderRepository, ProductDAO productDAO, UsuarioRepository usuarioRepository, ApplicationEventPublisher eventPublisher) {
+    public OrderService(OrderRepository orderRepository, ProductDAO productDAO, UsuarioRepository usuarioRepository, ApplicationEventPublisher eventPublisher, CheckoutMetricsState checkoutMetricsState) {
         this.orderRepository = orderRepository;
         this.productDAO = productDAO;
         this.usuarioRepository = usuarioRepository;
         this.eventPublisher = eventPublisher;
+        this.checkoutMetricsState = checkoutMetricsState;
     }
 
     @Transactional
@@ -55,6 +57,7 @@ public class OrderService {
 
         order.setStatus(OrderStatus.CONFIRMED);
         Order savedOrder = orderRepository.save(order);
+        checkoutMetricsState.recordConfirmedOrder(savedOrder.getId());
 
         Map<Long, Integer> productQuantities = new HashMap<>();
         for (OrderItem item : savedOrder.getItems()) {
