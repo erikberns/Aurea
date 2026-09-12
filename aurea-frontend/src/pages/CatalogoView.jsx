@@ -1,6 +1,6 @@
 import ProductCard from "../components/ProductCard";
 
-export default function CatalogoView({ joyas, categorias, categoriaFiltro }) {
+export default function CatalogoView({ joyas, categorias, categoriaFiltro, searchFiltro, setFiltro, clearFiltros }) {
   return (
     <>
       <section className="w-full bg-surface-container-low border-b border-outline-variant/30 py-10 lg:py-14">
@@ -36,7 +36,12 @@ export default function CatalogoView({ joyas, categorias, categoriaFiltro }) {
                 <span className="material-symbols-outlined text-primary text-xl">tune</span>
                 Filtrar Colección
               </h2>
-              <span className="font-label-sm text-label-sm text-primary uppercase cursor-pointer">Limpiar</span>
+              <span 
+                className="font-label-sm text-label-sm text-primary uppercase cursor-pointer hover:underline"
+                onClick={clearFiltros}
+              >
+                Limpiar
+              </span>
             </div>
             <div>
               <h3 className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant mb-3">
@@ -44,7 +49,17 @@ export default function CatalogoView({ joyas, categorias, categoriaFiltro }) {
               </h3>
               <ul className="space-y-2 font-body-md text-body-md text-on-surface">
                 {categorias.map((c) => (
-                  <li key={c} className="flex items-center gap-2">
+                  <li 
+                    key={c} 
+                    className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => {
+                      if (categoriaFiltro === c) {
+                        setFiltro("categoria", null);
+                      } else {
+                        setFiltro("categoria", c);
+                      }
+                    }}
+                  >
                     <span
                       className={`w-3.5 h-3.5 rounded-sm border ${
                         categoriaFiltro === c ? "bg-primary-container border-primary-container" : "border-outline-variant"
@@ -70,10 +85,23 @@ export default function CatalogoView({ joyas, categorias, categoriaFiltro }) {
           </aside>
 
           <div className="lg:col-span-9">
-            <div className="flex items-center justify-between mb-6">
-              <p className="font-body-md text-body-md text-on-surface-variant">
-                Mostrando <strong>{joyas.length}</strong> piezas en catálogo
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+              <div>
+                <p className="font-body-md text-body-md text-on-surface-variant">
+                  Mostrando <strong>{joyas.length}</strong> piezas en catálogo
+                </p>
+                {searchFiltro && (
+                  <p className="font-body-sm text-body-sm text-primary mt-1">
+                    Resultados para: <strong>"{searchFiltro}"</strong>
+                    <button 
+                      onClick={() => setFiltro("search", null)}
+                      className="ml-2 text-on-surface-variant hover:text-error underline"
+                    >
+                      (quitar)
+                    </button>
+                  </p>
+                )}
+              </div>
               <select className="border border-outline-variant rounded px-3 py-1.5 font-body-sm text-body-sm bg-surface-container-lowest">
                 <option>Los más deseados</option>
                 <option>Precio: menor a mayor</option>

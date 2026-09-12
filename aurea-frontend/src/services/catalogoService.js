@@ -20,6 +20,13 @@ export const catalogoService = {
       if (filtros.categoria) {
         resultado = resultado.filter((j) => j.categoria === filtros.categoria);
       }
+      if (filtros.search) {
+        const s = filtros.search.toLowerCase();
+        resultado = resultado.filter(j => 
+          j.nombre.toLowerCase().includes(s) || 
+          (j.descripcion && j.descripcion.toLowerCase().includes(s))
+        );
+      }
       return resultado;
     } catch (e) {
       console.error(e);
