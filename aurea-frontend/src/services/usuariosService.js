@@ -30,7 +30,7 @@ const realAdapter = {
   consultarPerfil: (usuarioId) => httpRequest(`/usuarios/${usuarioId}`),
 
   actualizarPerfil: (usuarioId, datosPerfil) =>
-    httpRequest(`/usuarios/${usuarioId}`, { method: "PUT", body: datosPerfil }),
+    httpRequest(`/usuarios/${usuarioId}`, { method: "PATCH", body: datosPerfil }),
 
   cambiarContrasena: (usuarioId, contrasenaActual, contrasenaNueva) =>
     httpRequest(`/usuarios/${usuarioId}/contrasena`, {
