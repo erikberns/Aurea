@@ -37,13 +37,13 @@ public class ProductService {
     }
 
     @Transactional
-    public ProductDTO createProduct(String name, String description, Double price, Integer stock, Long categoryId) {
+    public ProductDTO createProduct(String name, String description, Double price, Integer stock, Long categoryId, String imageUrl) {
         com.joyeriaEcommerce.AureaTPO.categorias.datos.Category category = null;
         if (categoryId != null) {
             category = categoryRepository.findById(categoryId)
                     .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
         }
-        Product newProduct = new Product(true, description, name, price, null, stock, category, null);
+        Product newProduct = new Product(true, description, name, price, imageUrl, stock, category, null);
         return ProductDTO.desde(productDAO.save(newProduct));
     }
 
@@ -56,7 +56,7 @@ public class ProductService {
     }
 
     @Transactional
-    public ProductDTO updateProduct(Long productId, String name, String description) {
+    public ProductDTO updateProduct(Long productId, String name, String description, String imageUrl) {
         Product product = productDAO.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
         if (name != null && !name.trim().isEmpty()) {
@@ -64,6 +64,9 @@ public class ProductService {
         }
         if (description != null && !description.trim().isEmpty()) {
             product.setDescription(description);
+        }
+        if (imageUrl != null && !imageUrl.trim().isEmpty()) {
+            product.setImageUrl(imageUrl);
         }
         return ProductDTO.desde(productDAO.save(product));
     }

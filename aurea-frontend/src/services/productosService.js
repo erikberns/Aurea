@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_BACKEND_URL + '/api/productos';
+const API_URL = import.meta.env.VITE_API_URL + '/productos';
 
 export const getProductos = async () => {
     const response = await fetch(API_URL, {
