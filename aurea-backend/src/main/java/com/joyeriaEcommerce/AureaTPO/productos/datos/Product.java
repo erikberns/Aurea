@@ -31,8 +31,8 @@ public class Product {
     @Column(name = "price")
     private Double price;
 
-    @Column(name = "discount_price")
-    private Double discountPrice;
+    @Column(name = "image_url", length = 200)
+    private String imageUrl;
 
     @Column(name = "stock")
     private Integer stock;
@@ -48,12 +48,12 @@ public class Product {
     protected Product() {
     }
 
-    public Product(Boolean active, String description, String name, Double price, Double discountPrice, Integer stock, Category category, Discount discount) {
+    public Product(Boolean active, String description, String name, Double price, String imageUrl, Integer stock, Category category, Discount discount) {
         this.active = active;
         this.description = description;
         this.name = name;
         this.price = price;
-        this.discountPrice = discountPrice;
+        this.imageUrl = imageUrl;
         this.stock = stock;
         this.category = category;
         this.discount = discount;
@@ -95,12 +95,12 @@ public class Product {
         this.price = price;
     }
 
-    public Double getDiscountPrice() {
-        return discountPrice;
+    public String getImageUrl() {
+        return imageUrl;
     }
 
-    public void setDiscountPrice(Double discountPrice) {
-        this.discountPrice = discountPrice;
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public Integer getStock() {

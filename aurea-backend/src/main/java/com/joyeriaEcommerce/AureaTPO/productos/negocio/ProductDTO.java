@@ -11,6 +11,7 @@ public record ProductDTO(
         String name,
         Double price,
         Double discountPrice,
+        String imageUrl,
         Integer stock,
         CategoryDTO category,
         DiscountDTO discount) {
@@ -19,13 +20,21 @@ public record ProductDTO(
         if (product == null) {
             return null;
         }
+        Double calculatedDiscountPrice = null;
+        if (product.getDiscount() != null && Boolean.TRUE.equals(product.getDiscount().getActive())) {
+            calculatedDiscountPrice = product.getPrice() * (1 - product.getDiscount().getPercentage() / 100);
+        } else if (product.getCategory() != null && product.getCategory().getDiscount() != null && Boolean.TRUE.equals(product.getCategory().getDiscount().getActive())) {
+            calculatedDiscountPrice = product.getPrice() * (1 - product.getCategory().getDiscount().getPercentage() / 100);
+        }
+
         return new ProductDTO(
                 product.getId(),
                 product.getActive(),
                 product.getDescription(),
                 product.getName(),
                 product.getPrice(),
-                product.getDiscountPrice(),
+                calculatedDiscountPrice,
+                product.getImageUrl(),
                 product.getStock(),
                 CategoryDTO.desde(product.getCategory()),
                 DiscountDTO.desde(product.getDiscount())
