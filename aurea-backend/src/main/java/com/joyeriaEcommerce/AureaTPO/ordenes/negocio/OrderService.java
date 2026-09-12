@@ -5,7 +5,7 @@ import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderItem;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderRepository;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderStatus;
 import com.joyeriaEcommerce.AureaTPO.ordenes.eventos.OrderConfirmedEvent;
-import com.joyeriaEcommerce.AureaTPO.ordenes.presentacion.CreateOrderRequest;
+
 import com.joyeriaEcommerce.AureaTPO.productos.datos.Product;
 import com.joyeriaEcommerce.AureaTPO.productos.datos.ProductRepository;
 import com.joyeriaEcommerce.AureaTPO.usuarios.datos.Usuario;
@@ -34,26 +34,28 @@ public class OrderService {
     }
 
     @Transactional
-    public Order createOrder(CreateOrderRequest request, String username) {
+    public Order createOrder(String shippingAddress, Map<Long, Integer> items, String username) {
         Usuario user = usuarioRepository.findByEmailIgnoreCase(username)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
 
-        Order order = new Order(request.getShippingAddress(), LocalDate.now(), OrderStatus.PENDING, 0.0, user);
+        Order order = new Order(shippingAddress, LocalDate.now(), OrderStatus.PENDING, 0.0, user);
         double total = 0.0;
 
-        for (CreateOrderRequest.CreateOrderItemRequest itemRequest : request.getItems()) {
-            Product product = productRepository.findById(itemRequest.getProductId())
-                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + itemRequest.getProductId()));
+        for (Map.Entry<Long, Integer> entry : items.entrySet()) {
+            Long productId = entry.getKey();
+            Integer quantity = entry.getValue();
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + productId));
 
-            if (product.getStock() < itemRequest.getQuantity()) {
+            if (product.getStock() < quantity) {
                 throw new IllegalStateException("Stock insuficiente para el producto: " + product.getName());
             }
 
             double price = product.getDiscountPrice() != null ? product.getDiscountPrice() : product.getPrice();
-            OrderItem orderItem = new OrderItem(order, product, itemRequest.getQuantity(), price);
+            OrderItem orderItem = new OrderItem(order, product, quantity, price);
             order.addItem(orderItem);
             
-            total += price * itemRequest.getQuantity();
+            total += price * quantity;
         }
 
         order.setTotal(total);
