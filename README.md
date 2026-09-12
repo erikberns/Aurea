@@ -29,15 +29,15 @@ Para conectarlo al backend real:
 1. Copiá `.env.example` a `.env`.
 2. Seteá `VITE_USE_MOCK=false`.
 3. Seteá `VITE_API_BASE_URL` apuntando a tu backend (por defecto `http://localhost:8080/api`).
-4. Implementá en Spring Boot los siguientes endpoints, que ya están contemplados en
-   `src/services/usuariosService.js` (`realAdapter`):
+4. Usá los siguientes endpoints, que ya están contemplados en `src/services/usuariosService.js`
+   (`realAdapter`):
 
    | Operación de iUsuarios      | Método y Path                          |
    |------------------------------|-----------------------------------------|
-   | `registrarCliente`           | `POST /api/usuarios/registro`           |
+   | `registrarCliente`           | `POST /api/usuarios`                    |
    | `autenticar`                 | `POST /api/usuarios/autenticar`         |
    | `consultarPerfil`            | `GET  /api/usuarios/{id}`               |
-   | `actualizarPerfil`           | `PUT  /api/usuarios/{id}`               |
+   | `actualizarPerfil`           | `PATCH /api/usuarios/{id}`              |
    | `cambiarContrasena`          | `PATCH /api/usuarios/{id}/contrasena`   |
    | `asignarRol`                 | `PATCH /api/usuarios/{id}/rol`          |
 
@@ -79,6 +79,31 @@ El backend incluye componentes gestionados por el contenedor de Spring mediante 
 - `NotificationService` también evidencia ciclo de vida gestionado por el contenedor: se
   inicializa con `@PostConstruct`, libera recursos lógicos con `@PreDestroy` y escucha eventos
   de dominio con `@EventListener`.
+
+## Patrones de diseño aplicados
+
+- **DAO**: `ProductDAO` define el contrato de acceso a productos y `ProductDAOImpl` encapsula
+  JPA/`EntityManager`. Esto separa persistencia de reglas de negocio y permite cambiar la fuente
+  de datos sin modificar `ProductService`.
+- **Facade**: `CheckoutFacade` concentra el caso de uso de checkout, coordinando usuario,
+  productos, orden, items y costo de envio. El controlador delega en una única operación de alto
+  nivel en vez de conocer todos los pasos internos.
+- **Strategy**: `ShippingStrategy` permite intercambiar algoritmos de costo de envio. Las
+  implementaciones `FreeShippingStrategy` y `StandardShippingStrategy` aíslan cada regla y evitan
+  condicionales dispersos.
+- **Adapter**: `usuariosService.js` mantiene el mismo contrato para las páginas React y alterna
+  entre `realAdapter` REST y `mockAdapter` local, útil para desarrollo sin backend.
+- **Observer/Event Listener**: `OrderService` publica `OrderConfirmedEvent` y los servicios de
+  inventario/notificaciones reaccionan con `@EventListener`, desacoplando la confirmación de sus
+  efectos secundarios.
+
+## Seguridad
+
+El backend usa JWT con Spring Security. `SecurityConfig` deja públicos solo registro,
+autenticación, consulta de productos y Actuator `health/info`; el resto requiere autenticación.
+Las operaciones sensibles agregan autorización declarativa por rol con `@PreAuthorize`, por
+ejemplo alta/baja/modificación de productos solo `ADMIN`, aprobación de devoluciones para
+`ADMIN` u `OPERADOR_INVENTARIO`, y asignación de roles solo `ADMIN`.
 
 ## Páginas incluidas
 
