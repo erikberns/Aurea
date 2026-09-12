@@ -3,6 +3,7 @@ package com.joyeriaEcommerce.AureaTPO.usuarios.negocio;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.UsuarioExceptions.CredencialesInvalidasException;
 import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.UsuarioExceptions.EmailYaRegistradoException;
 import com.joyeriaEcommerce.AureaTPO.usuarios.datos.Rol;
 import com.joyeriaEcommerce.AureaTPO.usuarios.datos.Usuario;
@@ -57,5 +58,30 @@ class ServicioDeUsuariosTests {
 
         assertThat(autenticado.usuario().email()).isEqualTo("sofia@example.com");
         assertThat(autenticado.token()).isNotNull();
+    }
+
+    @Test
+    void cambiaContrasenaConCredencialesValidas() {
+        AuthResponse registrado = usuarios.registrarCliente(
+                new DatosRegistro("Sofia", "Perez", "sofia@example.com", "ClaveSegura123"));
+
+        usuarios.cambiarContrasena(
+                registrado.usuario().id(),
+                new DatosCambioContrasena("ClaveSegura123", "NuevaClave123"));
+
+        Usuario persistido = repository.findByEmailIgnoreCase("sofia@example.com").orElseThrow();
+        assertThat(passwordEncoder.matches("NuevaClave123", persistido.getContrasenaHash())).isTrue();
+        assertThat(usuarios.autenticar(new Credenciales("sofia@example.com", "NuevaClave123")).token()).isNotNull();
+    }
+
+    @Test
+    void rechazaCambioDeContrasenaConContrasenaActualIncorrecta() {
+        AuthResponse registrado = usuarios.registrarCliente(
+                new DatosRegistro("Sofia", "Perez", "sofia@example.com", "ClaveSegura123"));
+
+        assertThatThrownBy(() -> usuarios.cambiarContrasena(
+                registrado.usuario().id(),
+                new DatosCambioContrasena("NoEsLaClave", "NuevaClave123")))
+                .isInstanceOf(CredencialesInvalidasException.class);
     }
 }
