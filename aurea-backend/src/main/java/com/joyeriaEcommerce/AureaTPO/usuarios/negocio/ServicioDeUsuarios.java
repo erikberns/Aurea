@@ -15,17 +15,14 @@ public class ServicioDeUsuarios implements IUsuarios {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
-    private final com.joyeriaEcommerce.AureaTPO.config.JwtService jwtService;
-
-    public ServicioDeUsuarios(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, com.joyeriaEcommerce.AureaTPO.config.JwtService jwtService) {
+    public ServicioDeUsuarios(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
     }
 
     @Override
     @Transactional
-    public AuthResponse registrarCliente(DatosRegistro datos) {
+    public UsuarioDTO registrarCliente(DatosRegistro datos) {
         String email = normalizarEmail(datos.email());
         if (usuarioRepository.existsByEmailIgnoreCase(email)) {
             throw new EmailYaRegistradoException(email);
@@ -39,13 +36,12 @@ public class ServicioDeUsuarios implements IUsuarios {
                 Rol.CLIENTE);
 
         Usuario guardado = usuarioRepository.save(usuario);
-        String token = jwtService.generateToken(guardado);
-        return new AuthResponse(UsuarioDTO.desde(guardado), token);
+        return UsuarioDTO.desde(guardado);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public AuthResponse autenticar(Credenciales credenciales) {
+    public UsuarioDTO autenticar(Credenciales credenciales) {
         Usuario usuario = usuarioRepository.findByEmailIgnoreCase(normalizarEmail(credenciales.email()))
                 .orElseThrow(CredencialesInvalidasException::new);
 
@@ -53,8 +49,7 @@ public class ServicioDeUsuarios implements IUsuarios {
             throw new CredencialesInvalidasException();
         }
 
-        String token = jwtService.generateToken(usuario);
-        return new AuthResponse(UsuarioDTO.desde(usuario), token);
+        return UsuarioDTO.desde(usuario);
     }
 
     @Override

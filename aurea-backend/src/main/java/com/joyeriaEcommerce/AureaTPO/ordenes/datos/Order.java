@@ -23,6 +23,9 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @jakarta.persistence.Version
+    private Integer version;
+
     @OneToMany(mappedBy = "order", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
     private java.util.List<OrderItem> items = new java.util.ArrayList<>();
 
