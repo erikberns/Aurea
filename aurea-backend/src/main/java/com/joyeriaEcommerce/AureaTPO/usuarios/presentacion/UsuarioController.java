@@ -50,6 +50,15 @@ public class UsuarioController {
         return usuarios.actualizarPerfil(usuarioId, request.toDatos());
     }
 
+    @PatchMapping("/{usuarioId}/contrasena")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN') or #usuarioId == principal.id")
+    public void cambiarContrasena(
+            @PathVariable Long usuarioId,
+            @Valid @RequestBody CambiarContrasenaRequest request) {
+        usuarios.cambiarContrasena(usuarioId, request.toDatos());
+    }
+
     @GetMapping
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public java.util.List<UsuarioDTO> obtenerTodos() {
