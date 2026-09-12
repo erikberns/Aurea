@@ -19,6 +19,9 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @jakarta.persistence.Version
+    private Integer version;
+
     @Column(name = "active")
     private Boolean active;
 

@@ -11,15 +11,12 @@
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
 
-const TOKEN_KEY = "aurea_access_token";
-
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token) {
-  if (token) localStorage.setItem(TOKEN_KEY, token);
-  else localStorage.removeItem(TOKEN_KEY);
+function getCsrfToken() {
+  const match = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'));
+  if (match) {
+    return decodeURIComponent(match[2]);
+  }
+  return null;
 }
 
 class ApiError extends Error {
@@ -33,19 +30,26 @@ class ApiError extends Error {
 /**
  * Wrapper único sobre fetch(). Agrega automáticamente:
  *  - Content-Type JSON
- *  - Authorization: Bearer <token> (cuando ServicioDeUsuarios ya emitió un JWT)
+ *  - credentials: "include" para enviar cookies (JSESSIONID)
+ *  - X-XSRF-TOKEN para métodos mutables
  *  - Parseo de errores del backend en un formato consistente
  */
-export async function httpRequest(path, { method = "GET", body, auth = true } = {}) {
+export async function httpRequest(path, { method = "GET", body } = {}) {
   const headers = { "Content-Type": "application/json" };
-  const token = getToken();
-  if (auth && token) headers.Authorization = `Bearer ${token}`;
+  
+  if (method !== "GET" && method !== "HEAD") {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      headers["X-XSRF-TOKEN"] = csrfToken;
+    }
+  }
 
   let response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers,
+      credentials: "include",
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch (networkError) {

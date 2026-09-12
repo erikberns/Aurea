@@ -12,28 +12,54 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.AuthResponse;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 @RestController
 @RequestMapping("/api/usuarios")
 public class UsuarioController {
 
     private final IUsuarios usuarios;
+    private final AuthenticationManager authenticationManager;
 
-    public UsuarioController(IUsuarios usuarios) {
+    public UsuarioController(IUsuarios usuarios, AuthenticationManager authenticationManager) {
         this.usuarios = usuarios;
+        this.authenticationManager = authenticationManager;
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public AuthResponse registrar(@Valid @RequestBody RegistrarClienteRequest request) {
-        return usuarios.registrarCliente(request.toDatos());
+    public UsuarioDTO registrar(@Valid @RequestBody RegistrarClienteRequest requestBody, HttpServletRequest httpRequest) {
+        UsuarioDTO user = usuarios.registrarCliente(requestBody.toDatos());
+        
+        Authentication auth = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(requestBody.email(), requestBody.contrasena())
+        );
+        SecurityContext sc = SecurityContextHolder.getContext();
+        sc.setAuthentication(auth);
+        HttpSession session = httpRequest.getSession(true);
+        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, sc);
+        
+        return user;
     }
 
     @PostMapping("/autenticar")
-    public AuthResponse autenticar(@Valid @RequestBody AutenticarRequest request) {
-        return usuarios.autenticar(request.toCredenciales());
+    public UsuarioDTO autenticar(@Valid @RequestBody AutenticarRequest requestBody, HttpServletRequest httpRequest) {
+        Authentication auth = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(requestBody.email(), requestBody.contrasena())
+        );
+        SecurityContext sc = SecurityContextHolder.getContext();
+        sc.setAuthentication(auth);
+        HttpSession session = httpRequest.getSession(true);
+        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, sc);
+
+        return usuarios.autenticar(requestBody.toCredenciales());
     }
 
     @GetMapping("/{usuarioId}")

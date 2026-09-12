@@ -14,7 +14,7 @@
 // React (capa de presentación) llaman siempre a `usuariosService`, sin saber
 // si por detrás hay un servidor real o el mock.
 // ---------------------------------------------------------------------------
-import { httpRequest, setToken } from "../api/httpClient";
+import { httpRequest } from "../api/httpClient";
 
 const USE_MOCK = (import.meta.env.VITE_USE_MOCK ?? "true") === "true";
 const MOCK_DB_KEY = "aurea_mock_usuarios_db";
@@ -52,9 +52,6 @@ function writeDb(db) {
 function delay(ms = 350) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-function fakeToken(usuarioId) {
-  return btoa(`${usuarioId}.${Date.now()}`);
-}
 
 const mockAdapter = {
   async registrarCliente(datosRegistro) {
@@ -90,12 +87,7 @@ const mockAdapter = {
       err.status = 401;
       throw err;
     }
-    const token = fakeToken(usuario.id);
-    setToken(token);
-    return {
-      token,
-      usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol },
-    };
+    return { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol };
   },
 
   async consultarPerfil(usuarioId) {

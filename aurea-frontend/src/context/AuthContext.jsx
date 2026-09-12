@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { usuariosService } from "../services/usuariosService";
-import { getToken, setToken } from "../api/httpClient";
 
 const SESSION_KEY = "aurea_session_usuario";
 const AuthContext = createContext(null);
@@ -10,31 +9,36 @@ export function AuthProvider({ children }) {
   const [cargando, setCargando] = useState(true);
 
   // Al montar el provider, restauramos la sesión desde localStorage.
-  // (Del lado del backend, ServicioDeUsuarios es stateless: esta
-  // "restauración" es exclusivamente del cliente, cada request real
-  // seguirá viajando con el JWT en el header Authorization.)
+  // Ahora la seguridad se maneja con la cookie JSESSIONID,
+  // pero guardamos el perfil localmente para tener nombre y rol.
   useEffect(() => {
     const raw = localStorage.getItem(SESSION_KEY);
-    if (raw && getToken()) {
+    if (raw) {
       setUsuario(JSON.parse(raw));
     }
     setCargando(false);
   }, []);
 
   const iniciarSesion = useCallback(async (credenciales) => {
-    const { token, usuario: u } = await usuariosService.autenticar(credenciales);
-    setToken(token);
+    const u = await usuariosService.autenticar(credenciales);
     localStorage.setItem(SESSION_KEY, JSON.stringify(u));
     setUsuario(u);
     return u;
   }, []);
 
   const registrarse = useCallback(async (datosRegistro) => {
-    return usuariosService.registrarCliente(datosRegistro);
+    const u = await usuariosService.registrarCliente(datosRegistro);
+    localStorage.setItem(SESSION_KEY, JSON.stringify(u));
+    setUsuario(u);
+    return u;
   }, []);
 
-  const cerrarSesion = useCallback(() => {
-    setToken(null);
+  const cerrarSesion = useCallback(async () => {
+    try {
+      await fetch("http://localhost:8080/api/usuarios/salir", { method: "POST" });
+    } catch (e) {
+      console.warn("No se pudo contactar al backend para logout.");
+    }
     localStorage.removeItem(SESSION_KEY);
     setUsuario(null);
   }, []);

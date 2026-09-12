@@ -60,6 +60,12 @@ public class ApiExceptionHandler {
                 errores);
     }
 
+    @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    ApiError concurrencia(org.springframework.orm.ObjectOptimisticLockingFailureException exception) {
+        return new ApiError(Instant.now(), HttpStatus.CONFLICT.value(), "El recurso fue modificado por otro usuario. Por favor, recargue la página.", Map.of());
+    }
+
     record ApiError(Instant timestamp, int status, String mensaje, Map<String, String> errores) {
     }
 }
