@@ -90,6 +90,10 @@ public class Usuario implements UserDetails {
         this.lastName = lastName;
     }
 
+    public void cambiarContrasena(String passwordHash) {
+        this.password = passwordHash;
+    }
+
     public @Nullable String getContrasenaHash() {
         return this.password;
     }
