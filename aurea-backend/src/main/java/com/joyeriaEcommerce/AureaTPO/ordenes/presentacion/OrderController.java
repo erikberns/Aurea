@@ -39,7 +39,7 @@ public class OrderController {
     }
 
     @PostMapping("/{id}/devolucion/aprobar")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('OPERADOR_INVENTARIO')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrderDTO> approveReturn(@PathVariable Long id) {
         return ResponseEntity.ok(orderService.approveReturn(id));
     }
