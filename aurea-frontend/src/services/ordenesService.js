@@ -12,3 +12,15 @@ export const confirmOrder = async (orderId) => {
         method: 'POST'
     });
 };
+
+export const getMisPedidos = async () => {
+    return httpRequest('/ordenes/mis-pedidos', {
+        method: 'GET'
+    });
+};
+
+export const getAllOrders = async () => {
+    return httpRequest('/ordenes', {
+        method: 'GET'
+    });
+};

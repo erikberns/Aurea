@@ -71,6 +71,25 @@ public class ServicioDeUsuarios implements IUsuarios {
         return UsuarioDTO.desde(usuario);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<UsuarioDTO> obtenerTodos() {
+        return usuarioRepository.findAll().stream().map(UsuarioDTO::desde).toList();
+    }
+
+    @Override
+    @Transactional
+    public UsuarioDTO asignarRol(Long usuarioId, String rol) {
+        Usuario usuario = buscarUsuario(usuarioId);
+        try {
+            Rol nuevoRol = Rol.valueOf(rol.toUpperCase());
+            usuario.setRole(nuevoRol);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Rol inválido");
+        }
+        return UsuarioDTO.desde(usuario);
+    }
+
     private Usuario buscarUsuario(Long usuarioId) {
         return usuarioRepository.findById(usuarioId).orElseThrow(UsuarioNoEncontradoException::new);
     }

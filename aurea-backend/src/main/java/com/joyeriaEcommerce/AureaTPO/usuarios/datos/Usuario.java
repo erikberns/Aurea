@@ -81,6 +81,10 @@ public class Usuario implements UserDetails {
         return role;
     }
 
+    public void setRole(Rol role) {
+        this.role = role;
+    }
+
     public void actualizarPerfil(String firstName, String lastName) {
         this.firstName = firstName;
         this.lastName = lastName;
