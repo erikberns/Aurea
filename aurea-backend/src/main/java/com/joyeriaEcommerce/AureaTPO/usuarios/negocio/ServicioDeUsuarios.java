@@ -72,6 +72,16 @@ public class ServicioDeUsuarios implements IUsuarios {
     }
 
     @Override
+    @Transactional
+    public void cambiarContrasena(Long usuarioId, DatosCambioContrasena datos) {
+        Usuario usuario = buscarUsuario(usuarioId);
+        if (!passwordEncoder.matches(datos.contrasenaActual(), usuario.getPassword())) {
+            throw new CredencialesInvalidasException();
+        }
+        usuario.cambiarContrasena(passwordEncoder.encode(datos.contrasenaNueva()));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public java.util.List<UsuarioDTO> obtenerTodos() {
         return usuarioRepository.findAll().stream().map(UsuarioDTO::desde).toList();
