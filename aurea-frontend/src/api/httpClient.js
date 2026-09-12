@@ -62,7 +62,7 @@ export async function httpRequest(path, { method = "GET", body, auth = true } = 
 
   if (!response.ok) {
     throw new ApiError(
-      data?.message || `Error ${response.status} al comunicarse con el servidor`,
+      data?.message || data?.mensaje || `Error ${response.status} al comunicarse con el servidor`,
       response.status,
       data
     );
