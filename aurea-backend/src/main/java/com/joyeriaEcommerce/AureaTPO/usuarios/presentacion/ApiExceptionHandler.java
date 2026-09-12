@@ -34,6 +34,18 @@ public class ApiExceptionHandler {
         return new ApiError(Instant.now(), HttpStatus.UNAUTHORIZED.value(), exception.getMessage(), Map.of());
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    ApiError solicitudInvalida(IllegalArgumentException exception) {
+        return new ApiError(Instant.now(), HttpStatus.BAD_REQUEST.value(), exception.getMessage(), Map.of());
+    }
+
+    @ExceptionHandler(SecurityException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    ApiError accesoDenegado(SecurityException exception) {
+        return new ApiError(Instant.now(), HttpStatus.FORBIDDEN.value(), exception.getMessage(), Map.of());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     ApiError validacion(MethodArgumentNotValidException exception) {
