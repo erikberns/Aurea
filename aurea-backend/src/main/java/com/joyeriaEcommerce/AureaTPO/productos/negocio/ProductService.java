@@ -7,6 +7,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.annotation.PostConstruct;
+
 @Service
 public class ProductService {
 
@@ -16,6 +18,12 @@ public class ProductService {
     public ProductService(ProductRepository productRepository, com.joyeriaEcommerce.AureaTPO.categorias.datos.CategoryRepository categoryRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+    }
+
+    @PostConstruct
+    public void checkDatabaseConnection() {
+        long count = productRepository.count();
+        System.out.println("[LIFECYCLE] ProductService montado. Total de productos cargados en memoria/DB: " + count);
     }
 
     public java.util.List<ProductDTO> getAllProducts() {
