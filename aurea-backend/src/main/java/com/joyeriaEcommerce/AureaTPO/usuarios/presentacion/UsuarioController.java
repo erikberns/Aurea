@@ -37,11 +37,13 @@ public class UsuarioController {
     }
 
     @GetMapping("/{usuarioId}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN') or #usuarioId == principal.id")
     public UsuarioDTO consultarPerfil(@PathVariable Long usuarioId) {
         return usuarios.consultarPerfil(usuarioId);
     }
 
     @PatchMapping("/{usuarioId}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN') or #usuarioId == principal.id")
     public UsuarioDTO actualizarPerfil(
             @PathVariable Long usuarioId,
             @Valid @RequestBody ActualizarPerfilRequest request) {
