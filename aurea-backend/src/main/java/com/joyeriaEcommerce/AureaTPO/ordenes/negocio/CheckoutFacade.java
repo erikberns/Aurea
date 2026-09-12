@@ -51,7 +51,13 @@ public class CheckoutFacade {
                 throw new IllegalStateException("Stock insuficiente para el producto: " + product.getName());
             }
 
-            double price = product.getDiscountPrice() != null ? product.getDiscountPrice() : product.getPrice();
+            double price = product.getPrice();
+            if (product.getDiscount() != null && Boolean.TRUE.equals(product.getDiscount().getActive())) {
+                price = product.getPrice() * (1 - product.getDiscount().getPercentage() / 100);
+            } else if (product.getCategory() != null && product.getCategory().getDiscount() != null && Boolean.TRUE.equals(product.getCategory().getDiscount().getActive())) {
+                price = product.getPrice() * (1 - product.getCategory().getDiscount().getPercentage() / 100);
+            }
+            
             OrderItem orderItem = new OrderItem(order, product, quantity, price);
             order.addItem(orderItem);
             
