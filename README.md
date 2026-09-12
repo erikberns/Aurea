@@ -65,6 +65,21 @@ consigna (presentación / negocio / datos), y el patrón **Adapter** aplicado en
 `usuariosService.js`: las páginas siempre llaman al mismo contrato (`usuariosService.xxx`)
 sin importar si detrás hay el backend real o el mock de desarrollo.
 
+## Componentes Spring y ciclo de vida
+
+El backend incluye componentes gestionados por el contenedor de Spring mediante anotaciones como
+`@RestController`, `@Service`, `@Repository`, `@Component`, `@Configuration` y `@Bean`.
+
+- `ProductService` es un componente **stateless**: no conserva estado propio entre invocaciones,
+  delega persistencia en `ProductDAO` y valida su inicialización con `@PostConstruct`.
+- `CheckoutMetricsState` es un componente **stateful**: conserva en memoria el contador de
+  órdenes confirmadas, el último id confirmado y la fecha de confirmación durante la vida de la
+  aplicación. Spring gestiona su ciclo de vida con `@PostConstruct` y `@PreDestroy`, y
+  `OrderService` actualiza ese estado cuando una orden pasa a `CONFIRMED`.
+- `NotificationService` también evidencia ciclo de vida gestionado por el contenedor: se
+  inicializa con `@PostConstruct`, libera recursos lógicos con `@PreDestroy` y escucha eventos
+  de dominio con `@EventListener`.
+
 ## Páginas incluidas
 
 - **/** — Landing page oficial (réplica del mock de Stitch "Home Landing Page Oficial"): hero,
