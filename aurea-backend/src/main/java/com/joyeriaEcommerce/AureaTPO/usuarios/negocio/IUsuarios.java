@@ -10,6 +10,8 @@ public interface IUsuarios {
 
     UsuarioDTO actualizarPerfil(Long usuarioId, DatosActualizacionPerfil datos);
 
+    void cambiarContrasena(Long usuarioId, DatosCambioContrasena datos);
+
     java.util.List<UsuarioDTO> obtenerTodos();
 
     UsuarioDTO asignarRol(Long usuarioId, String rol);
