@@ -1,4 +1,5 @@
-import { Link, useLocation } from "react-router-dom";
+import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 
@@ -15,6 +16,15 @@ export default function Header() {
   const { usuario, estaAutenticado } = useAuth();
   const { cantidadTotal } = useCart();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const handleSearch = (e) => {
+    if (e.key === "Enter" && searchTerm.trim() !== "") {
+      navigate(`/catalogo?search=${encodeURIComponent(searchTerm.trim())}`);
+      setSearchTerm("");
+    }
+  };
   
   // Decodificamos el currentPath para compararlo correctamente con link.to
   // ya que location.search devuelve los espacios como %20 y link.to tiene espacios literales (excepto el %26).
@@ -66,6 +76,9 @@ export default function Header() {
                 className="h-10 pl-9 pr-4 py-2 w-52 bg-surface-container-lowest border border-outline-variant/50 rounded-lg text-body-sm font-body-sm focus:w-64 focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all outline-none text-on-surface"
                 placeholder="Buscar dijes, aros, tallas..."
                 type="search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleSearch}
               />
               <span className="material-symbols-outlined text-outline absolute left-2.5 text-[18px] pointer-events-none">
                 search

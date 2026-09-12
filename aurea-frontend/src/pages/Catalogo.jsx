@@ -5,22 +5,43 @@ import CatalogoView from "./CatalogoView";
 
 export default function Catalogo() {
   // Estado local e interacción con APIs (Componente Stateful / Container)
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const categoriaFiltro = searchParams.get("categoria");
+  const searchFiltro = searchParams.get("search");
+  
   const [joyas, setJoyas] = useState([]);
   const [categorias, setCategorias] = useState([]);
 
   useEffect(() => {
-    catalogoService.buscarJoyas(categoriaFiltro ? { categoria: categoriaFiltro } : {}).then(setJoyas);
+    catalogoService.buscarJoyas({ 
+      categoria: categoriaFiltro || undefined,
+      search: searchFiltro || undefined
+    }).then(setJoyas);
     catalogoService.listarCategorias().then(setCategorias);
-  }, [categoriaFiltro]);
+  }, [categoriaFiltro, searchFiltro]);
 
-  // Se delega el 100% de la responsabilidad visual al componente Stateless
+  const setFiltro = (key, value) => {
+    const params = new URLSearchParams(searchParams);
+    if (value) {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+    setSearchParams(params);
+  };
+
+  const clearFiltros = () => {
+    setSearchParams(new URLSearchParams());
+  };
+
   return (
     <CatalogoView 
       joyas={joyas} 
       categorias={categorias} 
-      categoriaFiltro={categoriaFiltro} 
+      categoriaFiltro={categoriaFiltro}
+      searchFiltro={searchFiltro}
+      setFiltro={setFiltro}
+      clearFiltros={clearFiltros}
     />
   );
 }
