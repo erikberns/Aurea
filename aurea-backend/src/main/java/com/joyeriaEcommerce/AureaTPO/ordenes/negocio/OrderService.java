@@ -99,4 +99,14 @@ public class OrderService {
         order.setStatus(OrderStatus.CANCELLED);
         return orderRepository.save(order);
     }
+
+    @Transactional(readOnly = true)
+    public java.util.List<Order> getOrdersByUser(String username) {
+        return orderRepository.findByUser_EmailOrderByOrderDateDesc(username);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<Order> getAllOrders() {
+        return orderRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "orderDate"));
+    }
 }

@@ -47,6 +47,27 @@ public class ProductService {
     }
 
     @Transactional
+    public Product updateProduct(Long productId, String name, String description) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+        if (name != null && !name.trim().isEmpty()) {
+            product.setName(name);
+        }
+        if (description != null && !description.trim().isEmpty()) {
+            product.setDescription(description);
+        }
+        return productRepository.save(product);
+    }
+
+    @Transactional
+    public void deleteProduct(Long productId) {
+        if (!productRepository.existsById(productId)) {
+            throw new IllegalArgumentException("Producto no encontrado");
+        }
+        productRepository.deleteById(productId);
+    }
+
+    @Transactional
     public Product updateStock(Long productId, Integer newStock) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));

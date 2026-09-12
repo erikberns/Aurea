@@ -47,4 +47,18 @@ public class UsuarioController {
             @Valid @RequestBody ActualizarPerfilRequest request) {
         return usuarios.actualizarPerfil(usuarioId, request.toDatos());
     }
+
+    @GetMapping
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    public java.util.List<UsuarioDTO> obtenerTodos() {
+        return usuarios.obtenerTodos();
+    }
+
+    @PatchMapping("/{usuarioId}/rol")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    public UsuarioDTO asignarRol(
+            @PathVariable Long usuarioId,
+            @RequestBody java.util.Map<String, String> request) {
+        return usuarios.asignarRol(usuarioId, request.get("rol"));
+    }
 }

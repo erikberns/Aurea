@@ -4,10 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import { usuariosService } from "../services/usuariosService";
 import { FormField, TextInput, PrimaryButton, SecondaryButton, Banner } from "../components/ui";
 
-const PEDIDOS_MOCK = [
-  { id: "#AUR-2024-5921", fecha: "18 Nov 2023", estado: "Entregado", total: 112000, items: 2 },
-  { id: "#AUR-2023-3891", fecha: "04 Sep 2023", estado: "Entregado", total: 65000, items: 1 },
-];
 
 function TabPerfil({ usuario, onPerfilActualizado }) {
   const [form, setForm] = useState({ nombre: usuario.nombre, apellido: usuario.apellido || "", email: usuario.email });
@@ -125,19 +121,34 @@ function TabSeguridad({ usuario }) {
 
 function TabPedidos() {
   const fmt = new Intl.NumberFormat("es-AR");
+  const [pedidos, setPedidos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    import("../services/ordenesService").then(({ getMisPedidos }) => {
+      getMisPedidos()
+        .then(setPedidos)
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    });
+  }, []);
+
+  if (loading) return <p className="text-on-surface-variant">Cargando tus pedidos...</p>;
+  if (pedidos.length === 0) return <p className="text-on-surface-variant">Aún no tenés pedidos.</p>;
+
   return (
     <div className="space-y-4 max-w-2xl">
-      {PEDIDOS_MOCK.map((p) => (
+      {pedidos.map((p) => (
         <div key={p.id} className="border border-outline-variant/40 rounded p-4 flex items-center justify-between">
           <div>
-            <p className="font-title-md text-title-md text-on-surface">{p.id}</p>
+            <p className="font-title-md text-title-md text-on-surface">Orden #{p.id}</p>
             <p className="font-body-sm text-body-sm text-on-surface-variant">
-              {p.fecha} · {p.items} producto{p.items > 1 ? "s" : ""}
+              {new Date(p.orderDate).toLocaleDateString("es-AR")} · {p.items?.length || 0} producto{p.items?.length !== 1 ? "s" : ""}
             </p>
           </div>
           <div className="text-right">
             <span className="inline-block bg-secondary-container/60 text-on-secondary-container font-label-sm text-label-sm uppercase px-2 py-1 rounded-full mb-1">
-              {p.estado}
+              {p.status}
             </span>
             <p className="font-title-md text-title-md text-on-surface">${fmt.format(p.total)}</p>
           </div>

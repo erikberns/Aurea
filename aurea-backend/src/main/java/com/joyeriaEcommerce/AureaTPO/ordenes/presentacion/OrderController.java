@@ -34,4 +34,16 @@ public class OrderController {
     public ResponseEntity<Order> approveReturn(@PathVariable Long id) {
         return ResponseEntity.ok(orderService.approveReturn(id));
     }
+
+    @GetMapping("/mis-pedidos")
+    public ResponseEntity<java.util.List<Order>> getMyOrders(Authentication authentication) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(orderService.getOrdersByUser(username));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<java.util.List<Order>> getAllOrders() {
+        return ResponseEntity.ok(orderService.getAllOrders());
+    }
 }

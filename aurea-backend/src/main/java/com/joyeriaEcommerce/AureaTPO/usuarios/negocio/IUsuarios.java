@@ -9,4 +9,8 @@ public interface IUsuarios {
     UsuarioDTO consultarPerfil(Long usuarioId);
 
     UsuarioDTO actualizarPerfil(Long usuarioId, DatosActualizacionPerfil datos);
+
+    java.util.List<UsuarioDTO> obtenerTodos();
+
+    UsuarioDTO asignarRol(Long usuarioId, String rol);
 }
