@@ -7,7 +7,7 @@ import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderStatus;
 import com.joyeriaEcommerce.AureaTPO.ordenes.eventos.OrderConfirmedEvent;
 
 import com.joyeriaEcommerce.AureaTPO.productos.datos.Product;
-import com.joyeriaEcommerce.AureaTPO.productos.datos.ProductRepository;
+import com.joyeriaEcommerce.AureaTPO.productos.datos.ProductDAO;
 import com.joyeriaEcommerce.AureaTPO.usuarios.datos.Usuario;
 import com.joyeriaEcommerce.AureaTPO.usuarios.datos.UsuarioRepository;
 import org.springframework.context.ApplicationEventPublisher;
@@ -22,13 +22,13 @@ import java.util.Map;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final ProductRepository productRepository;
+    private final ProductDAO productDAO;
     private final UsuarioRepository usuarioRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    public OrderService(OrderRepository orderRepository, ProductRepository productRepository, UsuarioRepository usuarioRepository, ApplicationEventPublisher eventPublisher) {
+    public OrderService(OrderRepository orderRepository, ProductDAO productDAO, UsuarioRepository usuarioRepository, ApplicationEventPublisher eventPublisher) {
         this.orderRepository = orderRepository;
-        this.productRepository = productRepository;
+        this.productDAO = productDAO;
         this.usuarioRepository = usuarioRepository;
         this.eventPublisher = eventPublisher;
     }
