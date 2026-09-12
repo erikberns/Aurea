@@ -18,36 +18,37 @@ public class ProductService {
         this.categoryRepository = categoryRepository;
     }
 
-    public java.util.List<Product> getAllProducts() {
-        return productRepository.findAll();
+    public java.util.List<ProductDTO> getAllProducts() {
+        return productRepository.findAll().stream().map(ProductDTO::desde).toList();
     }
 
-    public Product getProductById(Long id) {
-        return productRepository.findById(id)
+    public ProductDTO getProductById(Long id) {
+        Product product = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+        return ProductDTO.desde(product);
     }
 
     @Transactional
-    public Product createProduct(String name, String description, Double price, Integer stock, Long categoryId) {
+    public ProductDTO createProduct(String name, String description, Double price, Integer stock, Long categoryId) {
         com.joyeriaEcommerce.AureaTPO.categorias.datos.Category category = null;
         if (categoryId != null) {
             category = categoryRepository.findById(categoryId)
                     .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
         }
         Product newProduct = new Product(true, description, name, price, null, stock, category, null);
-        return productRepository.save(newProduct);
+        return ProductDTO.desde(productRepository.save(newProduct));
     }
 
     @Transactional
-    public Product updatePrice(Long productId, Double newPrice) {
+    public ProductDTO updatePrice(Long productId, Double newPrice) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
         product.setPrice(newPrice);
-        return productRepository.save(product);
+        return ProductDTO.desde(productRepository.save(product));
     }
 
     @Transactional
-    public Product updateProduct(Long productId, String name, String description) {
+    public ProductDTO updateProduct(Long productId, String name, String description) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
         if (name != null && !name.trim().isEmpty()) {
@@ -56,7 +57,7 @@ public class ProductService {
         if (description != null && !description.trim().isEmpty()) {
             product.setDescription(description);
         }
-        return productRepository.save(product);
+        return ProductDTO.desde(productRepository.save(product));
     }
 
     @Transactional
@@ -68,11 +69,11 @@ public class ProductService {
     }
 
     @Transactional
-    public Product updateStock(Long productId, Integer newStock) {
+    public ProductDTO updateStock(Long productId, Integer newStock) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
         product.setStock(newStock);
-        return productRepository.save(product);
+        return ProductDTO.desde(productRepository.save(product));
     }
 
     @EventListener
