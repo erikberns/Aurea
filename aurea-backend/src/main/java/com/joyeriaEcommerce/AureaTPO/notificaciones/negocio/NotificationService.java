@@ -5,6 +5,9 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+
 @Service
 public class NotificationService {
 
@@ -17,5 +20,15 @@ public class NotificationService {
         System.out.println("Enviando correo electrónico de confirmación para la orden: " + event.orderId());
         System.out.println("Usuario ID destinatario: " + event.userId());
         System.out.println("=========================================================");
+    }
+
+    @PostConstruct
+    public void init() {
+        System.out.println("[LIFECYCLE] NotificationService inicializado y listo para escuchar eventos de confirmación.");
+    }
+
+    @PreDestroy
+    public void cleanup() {
+        System.out.println("[LIFECYCLE] Apagando NotificationService. Cerrando canales de comunicación asíncronos...");
     }
 }
