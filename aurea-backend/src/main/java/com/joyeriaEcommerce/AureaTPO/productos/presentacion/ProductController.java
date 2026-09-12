@@ -35,7 +35,8 @@ public class ProductController {
                 request.description(),
                 request.price(),
                 request.stock(),
-                request.categoryId()
+                request.categoryId(),
+                request.imageUrl()
         );
         return ResponseEntity.status(201).body(newProduct);
     }
@@ -57,7 +58,7 @@ public class ProductController {
     public ResponseEntity<ProductDTO> updateProduct(
             @PathVariable Long id,
             @RequestBody CreateProductRequest request) {
-        return ResponseEntity.ok(productService.updateProduct(id, request.name(), request.description()));
+        return ResponseEntity.ok(productService.updateProduct(id, request.name(), request.description(), request.imageUrl()));
     }
 
     @DeleteMapping("/{id}")
