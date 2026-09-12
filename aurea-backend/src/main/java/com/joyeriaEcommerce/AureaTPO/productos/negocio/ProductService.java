@@ -2,7 +2,7 @@ package com.joyeriaEcommerce.AureaTPO.productos.negocio;
 
 import com.joyeriaEcommerce.AureaTPO.ordenes.eventos.OrderConfirmedEvent;
 import com.joyeriaEcommerce.AureaTPO.productos.datos.Product;
-import com.joyeriaEcommerce.AureaTPO.productos.datos.ProductRepository;
+import com.joyeriaEcommerce.AureaTPO.productos.datos.ProductDAO;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,26 +12,26 @@ import jakarta.annotation.PostConstruct;
 @Service
 public class ProductService {
 
-    private final ProductRepository productRepository;
+    private final ProductDAO productDAO;
     private final com.joyeriaEcommerce.AureaTPO.categorias.datos.CategoryRepository categoryRepository;
 
-    public ProductService(ProductRepository productRepository, com.joyeriaEcommerce.AureaTPO.categorias.datos.CategoryRepository categoryRepository) {
-        this.productRepository = productRepository;
+    public ProductService(ProductDAO productDAO, com.joyeriaEcommerce.AureaTPO.categorias.datos.CategoryRepository categoryRepository) {
+        this.productDAO = productDAO;
         this.categoryRepository = categoryRepository;
     }
 
     @PostConstruct
     public void checkDatabaseConnection() {
-        long count = productRepository.count();
+        long count = productDAO.count();
         System.out.println("[LIFECYCLE] ProductService montado. Total de productos cargados en memoria/DB: " + count);
     }
 
     public java.util.List<ProductDTO> getAllProducts() {
-        return productRepository.findAll().stream().map(ProductDTO::desde).toList();
+        return productDAO.findAll().stream().map(ProductDTO::desde).toList();
     }
 
     public ProductDTO getProductById(Long id) {
-        Product product = productRepository.findById(id)
+        Product product = productDAO.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
         return ProductDTO.desde(product);
     }
@@ -44,20 +44,20 @@ public class ProductService {
                     .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
         }
         Product newProduct = new Product(true, description, name, price, null, stock, category, null);
-        return ProductDTO.desde(productRepository.save(newProduct));
+        return ProductDTO.desde(productDAO.save(newProduct));
     }
 
     @Transactional
     public ProductDTO updatePrice(Long productId, Double newPrice) {
-        Product product = productRepository.findById(productId)
+        Product product = productDAO.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
         product.setPrice(newPrice);
-        return ProductDTO.desde(productRepository.save(product));
+        return ProductDTO.desde(productDAO.save(product));
     }
 
     @Transactional
     public ProductDTO updateProduct(Long productId, String name, String description) {
-        Product product = productRepository.findById(productId)
+        Product product = productDAO.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
         if (name != null && !name.trim().isEmpty()) {
             product.setName(name);
@@ -65,23 +65,23 @@ public class ProductService {
         if (description != null && !description.trim().isEmpty()) {
             product.setDescription(description);
         }
-        return ProductDTO.desde(productRepository.save(product));
+        return ProductDTO.desde(productDAO.save(product));
     }
 
     @Transactional
     public void deleteProduct(Long productId) {
-        if (!productRepository.existsById(productId)) {
+        if (!productDAO.existsById(productId)) {
             throw new IllegalArgumentException("Producto no encontrado");
         }
-        productRepository.deleteById(productId);
+        productDAO.deleteById(productId);
     }
 
     @Transactional
     public ProductDTO updateStock(Long productId, Integer newStock) {
-        Product product = productRepository.findById(productId)
+        Product product = productDAO.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
         product.setStock(newStock);
-        return ProductDTO.desde(productRepository.save(product));
+        return ProductDTO.desde(productDAO.save(product));
     }
 
     @EventListener
@@ -94,7 +94,7 @@ public class ProductService {
                 Long productId = entry.getKey();
                 Integer quantity = entry.getValue();
                 
-                Product product = productRepository.findById(productId)
+                Product product = productDAO.findById(productId)
                         .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + productId));
                 
                 if (product.getStock() < quantity) {
@@ -102,7 +102,7 @@ public class ProductService {
                 }
                 
                 product.setStock(product.getStock() - quantity);
-                productRepository.save(product);
+                productDAO.save(product);
                 System.out.println("Stock actualizado para producto " + productId + ". Nuevo stock: " + product.getStock());
             }
         }

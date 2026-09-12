@@ -7,7 +7,7 @@ import com.joyeriaEcommerce.AureaTPO.ordenes.negocio.strategy.FreeShippingStrate
 import com.joyeriaEcommerce.AureaTPO.ordenes.negocio.strategy.ShippingStrategy;
 import com.joyeriaEcommerce.AureaTPO.ordenes.negocio.strategy.StandardShippingStrategy;
 import com.joyeriaEcommerce.AureaTPO.productos.datos.Product;
-import com.joyeriaEcommerce.AureaTPO.productos.datos.ProductRepository;
+import com.joyeriaEcommerce.AureaTPO.productos.datos.ProductDAO;
 import com.joyeriaEcommerce.AureaTPO.usuarios.datos.Usuario;
 import com.joyeriaEcommerce.AureaTPO.usuarios.datos.UsuarioRepository;
 import org.springframework.stereotype.Service;
@@ -20,14 +20,14 @@ import java.util.Map;
 public class CheckoutFacade {
 
     private final OrderService orderService;
-    private final ProductRepository productRepository;
+    private final ProductDAO productDAO;
     private final UsuarioRepository usuarioRepository;
     private final FreeShippingStrategy freeShippingStrategy;
     private final StandardShippingStrategy standardShippingStrategy;
 
-    public CheckoutFacade(OrderService orderService, ProductRepository productRepository, UsuarioRepository usuarioRepository, FreeShippingStrategy freeShippingStrategy, StandardShippingStrategy standardShippingStrategy) {
+    public CheckoutFacade(OrderService orderService, ProductDAO productDAO, UsuarioRepository usuarioRepository, FreeShippingStrategy freeShippingStrategy, StandardShippingStrategy standardShippingStrategy) {
         this.orderService = orderService;
-        this.productRepository = productRepository;
+        this.productDAO = productDAO;
         this.usuarioRepository = usuarioRepository;
         this.freeShippingStrategy = freeShippingStrategy;
         this.standardShippingStrategy = standardShippingStrategy;
@@ -44,7 +44,7 @@ public class CheckoutFacade {
         for (Map.Entry<Long, Integer> entry : items.entrySet()) {
             Long productId = entry.getKey();
             Integer quantity = entry.getValue();
-            Product product = productRepository.findById(productId)
+            Product product = productDAO.findById(productId)
                     .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + productId));
 
             if (product.getStock() < quantity) {
