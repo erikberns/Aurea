@@ -36,11 +36,14 @@ public class SecurityConfig {
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
                 )
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/usuarios", "/api/usuarios/autenticar", "/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/api/csrf", "/api/usuarios/sesion", "/api/usuarios", "/api/usuarios/autenticar", "/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/productos", "/api/productos/**").permitAll()
+                        .requestMatchers("/api/carrito/checkout").authenticated()
+                        .requestMatchers("/api/carrito", "/api/carrito/items", "/api/carrito/items/*").permitAll()
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(errors -> errors.authenticationEntryPoint((req,res,ex) -> res.sendError(401)))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authenticationProvider(authenticationProvider)
                 .logout(logout -> logout

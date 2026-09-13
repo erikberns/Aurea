@@ -6,15 +6,10 @@ import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderRepository;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderStatus;
 import com.joyeriaEcommerce.AureaTPO.ordenes.eventos.OrderConfirmedEvent;
 
-import com.joyeriaEcommerce.AureaTPO.productos.datos.Product;
-import com.joyeriaEcommerce.AureaTPO.productos.datos.ProductDAO;
-import com.joyeriaEcommerce.AureaTPO.usuarios.datos.Usuario;
-import com.joyeriaEcommerce.AureaTPO.usuarios.datos.UsuarioRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,17 +17,11 @@ import java.util.Map;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final ProductDAO productDAO;
-    private final UsuarioRepository usuarioRepository;
     private final ApplicationEventPublisher eventPublisher;
-    private final CheckoutMetricsState checkoutMetricsState;
 
-    public OrderService(OrderRepository orderRepository, ProductDAO productDAO, UsuarioRepository usuarioRepository, ApplicationEventPublisher eventPublisher, CheckoutMetricsState checkoutMetricsState) {
+    public OrderService(OrderRepository orderRepository, ApplicationEventPublisher eventPublisher) {
         this.orderRepository = orderRepository;
-        this.productDAO = productDAO;
-        this.usuarioRepository = usuarioRepository;
         this.eventPublisher = eventPublisher;
-        this.checkoutMetricsState = checkoutMetricsState;
     }
 
     @Transactional
@@ -57,7 +46,7 @@ public class OrderService {
 
         order.setStatus(OrderStatus.CONFIRMED);
         Order savedOrder = orderRepository.save(order);
-        checkoutMetricsState.recordConfirmedOrder(savedOrder.getId());
+
 
         Map<Long, Integer> productQuantities = new HashMap<>();
         for (OrderItem item : savedOrder.getItems()) {

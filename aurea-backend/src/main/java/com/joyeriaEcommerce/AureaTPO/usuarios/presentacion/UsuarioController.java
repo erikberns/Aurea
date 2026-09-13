@@ -39,12 +39,9 @@ public class UsuarioController {
         UsuarioDTO user = usuarios.registrarCliente(requestBody.toDatos());
         
         Authentication auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(requestBody.email(), requestBody.contrasena())
+                new UsernamePasswordAuthenticationToken(requestBody.email().trim(), requestBody.contrasena())
         );
-        SecurityContext sc = SecurityContextHolder.getContext();
-        sc.setAuthentication(auth);
-        HttpSession session = httpRequest.getSession(true);
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, sc);
+        guardarSesion(auth,httpRequest);
         
         return user;
     }
@@ -52,12 +49,9 @@ public class UsuarioController {
     @PostMapping("/autenticar")
     public UsuarioDTO autenticar(@Valid @RequestBody AutenticarRequest requestBody, HttpServletRequest httpRequest) {
         Authentication auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(requestBody.email(), requestBody.contrasena())
+                new UsernamePasswordAuthenticationToken(requestBody.email().trim(), requestBody.contrasena())
         );
-        SecurityContext sc = SecurityContextHolder.getContext();
-        sc.setAuthentication(auth);
-        HttpSession session = httpRequest.getSession(true);
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, sc);
+        guardarSesion(auth,httpRequest);
 
         return usuarios.autenticar(requestBody.toCredenciales());
     }
@@ -97,5 +91,23 @@ public class UsuarioController {
             @PathVariable Long usuarioId,
             @RequestBody java.util.Map<String, String> request) {
         return usuarios.asignarRol(usuarioId, request.get("rol"));
+    }
+
+    @GetMapping("/sesion")
+    public UsuarioDTO sesion(Authentication auth){
+        if(auth==null||!auth.isAuthenticated()||!(auth.getPrincipal() instanceof com.joyeriaEcommerce.AureaTPO.usuarios.datos.Usuario u)) return null;
+        return usuarios.consultarPerfil(u.getId());
+    }
+    private void guardarSesion(Authentication auth,HttpServletRequest request){
+        Authentication anterior=SecurityContextHolder.getContext().getAuthentication();
+        HttpSession session=request.getSession(false);
+        // Preserva el carrito invitado, pero nunca lo transfiere entre cuentas autenticadas.
+        if(session!=null&&anterior!=null&&anterior.getPrincipal() instanceof com.joyeriaEcommerce.AureaTPO.usuarios.datos.Usuario&&!anterior.getName().equals(auth.getName())){
+            session.invalidate();session=null;
+        }
+        if(session==null) session=request.getSession(true); else request.changeSessionId();
+        SecurityContext context=SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(auth);SecurityContextHolder.setContext(context);
+        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,context);
     }
 }

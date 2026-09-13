@@ -20,12 +20,7 @@ public record ProductDTO(
         if (product == null) {
             return null;
         }
-        Double calculatedDiscountPrice = null;
-        if (product.getDiscount() != null && Boolean.TRUE.equals(product.getDiscount().getActive())) {
-            calculatedDiscountPrice = product.getPrice() * (1 - product.getDiscount().getPercentage() / 100);
-        } else if (product.getCategory() != null && product.getCategory().getDiscount() != null && Boolean.TRUE.equals(product.getCategory().getDiscount().getActive())) {
-            calculatedDiscountPrice = product.getPrice() * (1 - product.getCategory().getDiscount().getPercentage() / 100);
-        }
+        Double calculatedDiscountPrice = PrecioProducto.descuento(product);
 
         return new ProductDTO(
                 product.getId(),

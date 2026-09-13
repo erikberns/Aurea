@@ -11,8 +11,9 @@ public class CreateOrderRequest {
     @NotBlank(message = "La dirección de envío no puede estar vacía")
     private String shippingAddress;
 
+    @jakarta.validation.Valid
     @NotEmpty(message = "El carrito no puede estar vacío")
-    private List<CreateOrderItemRequest> items;
+    private List<@NotNull CreateOrderItemRequest> items;
 
     public String getShippingAddress() {
         return shippingAddress;
@@ -22,11 +23,11 @@ public class CreateOrderRequest {
         this.shippingAddress = shippingAddress;
     }
 
-    public List<CreateOrderItemRequest> getItems() {
+    public List<@NotNull CreateOrderItemRequest> getItems() {
         return items;
     }
 
-    public void setItems(List<CreateOrderItemRequest> items) {
+    public void setItems(List<@NotNull CreateOrderItemRequest> items) {
         this.items = items;
     }
 

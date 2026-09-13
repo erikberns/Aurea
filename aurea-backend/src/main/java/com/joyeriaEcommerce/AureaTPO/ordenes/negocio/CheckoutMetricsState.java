@@ -19,6 +19,8 @@ public class CheckoutMetricsState {
         System.out.println("[LIFECYCLE] CheckoutMetricsState inicializado. Estado de metricas de checkout listo.");
     }
 
+    @org.springframework.transaction.event.TransactionalEventListener(phase=org.springframework.transaction.event.TransactionPhase.AFTER_COMMIT)
+    public void alConfirmar(com.joyeriaEcommerce.AureaTPO.ordenes.eventos.OrderConfirmedEvent event){recordConfirmedOrder(event.orderId());}
     public void recordConfirmedOrder(Long orderId) {
         confirmedOrdersCount.incrementAndGet();
         lastConfirmedOrderId = orderId;
