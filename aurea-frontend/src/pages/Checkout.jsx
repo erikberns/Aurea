@@ -49,7 +49,7 @@ export default function Checkout() {
                 key={`${item.id}-${item.opcion}`}
                 className="flex items-center gap-4 border border-outline-variant/40 rounded p-4"
               >
-                <img src={item.imagen} alt={item.nombre} className="w-20 h-20 object-cover rounded" />
+                <img src={item.imagen || "https://images.unsplash.com/photo-1603561591411-07134e71a2a9?q=80&w=800&auto=format&fit=crop"} alt={item.nombre} className="w-20 h-20 object-cover rounded" />
                 <div className="flex-1">
                   <p className="font-title-md text-title-md text-on-surface">{item.nombre}</p>
                   <p className="font-body-sm text-body-sm text-on-surface-variant">
