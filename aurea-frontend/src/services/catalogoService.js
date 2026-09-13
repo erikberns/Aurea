@@ -44,6 +44,14 @@ export const catalogoService = {
           (j.descripcion && j.descripcion.toLowerCase().includes(s))
         );
       }
+      if (filtros.sort) {
+        if (filtros.sort === "asc") {
+          resultado.sort((a, b) => a.precio - b.precio);
+        } else if (filtros.sort === "desc") {
+          resultado.sort((a, b) => b.precio - a.precio);
+        }
+      }
+
       return resultado;
     } catch (e) {
       console.error(e);

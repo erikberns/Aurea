@@ -1,6 +1,6 @@
 import ProductCard from "../components/ProductCard";
 
-export default function CatalogoView({ joyas, categorias, categoriaFiltro, searchFiltro, setFiltro, clearFiltros }) {
+export default function CatalogoView({ joyas, categorias, categoriaFiltro, searchFiltro, sortFiltro, setFiltro, clearFiltros }) {
   return (
     <>
       <section className="w-full bg-surface-container-low border-b border-outline-variant/30 py-10 lg:py-14">
@@ -102,10 +102,14 @@ export default function CatalogoView({ joyas, categorias, categoriaFiltro, searc
                   </p>
                 )}
               </div>
-              <select className="border border-outline-variant rounded px-3 py-1.5 font-body-sm text-body-sm bg-surface-container-lowest">
-                <option>Los más deseados</option>
-                <option>Precio: menor a mayor</option>
-                <option>Precio: mayor a menor</option>
+              <select 
+                className="border border-outline-variant rounded px-3 py-1.5 font-body-sm text-body-sm bg-surface-container-lowest"
+                value={sortFiltro}
+                onChange={(e) => setFiltro("sort", e.target.value)}
+              >
+                <option value="populares">Los más deseados</option>
+                <option value="asc">Precio: menor a mayor</option>
+                <option value="desc">Precio: mayor a menor</option>
               </select>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
