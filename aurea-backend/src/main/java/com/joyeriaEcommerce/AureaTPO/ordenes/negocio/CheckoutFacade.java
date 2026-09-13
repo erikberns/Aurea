@@ -2,72 +2,65 @@ package com.joyeriaEcommerce.AureaTPO.ordenes.negocio;
 
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.Order;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderItem;
+import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderRepository;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderStatus;
-import com.joyeriaEcommerce.AureaTPO.productos.datos.Product;
-import com.joyeriaEcommerce.AureaTPO.productos.datos.ProductDAO;
-import com.joyeriaEcommerce.AureaTPO.usuarios.datos.Usuario;
-import com.joyeriaEcommerce.AureaTPO.usuarios.datos.UsuarioRepository;
+import com.joyeriaEcommerce.AureaTPO.productos.negocio.IProductos;
+import com.joyeriaEcommerce.AureaTPO.productos.negocio.ProductDTO;
+import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.IUsuarios;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
 import java.util.Map;
-import com.joyeriaEcommerce.AureaTPO.ordenes.negocio.strategy.CostoEnvio;
-import com.joyeriaEcommerce.AureaTPO.productos.negocio.PrecioProducto;
 
+/** Facade: coordina la compra mediante contratos de negocio. */
 @Service
-public class CheckoutFacade {
+public class CheckoutFacade implements ICheckout {
+    private final IPedidos pedidos;
+    private final OrderRepository orderRepository;
+    private final IProductos productos;
+    private final IUsuarios usuarios;
+    private final ICalculoEnvio envio;
 
-    private final OrderService orderService;
-    private final ProductDAO productDAO;
-    private final UsuarioRepository usuarioRepository;
-    private final CostoEnvio costoEnvio;
-
-    public CheckoutFacade(OrderService orderService, ProductDAO productDAO, UsuarioRepository usuarioRepository, CostoEnvio costoEnvio) {
-        this.orderService = orderService;
-        this.productDAO = productDAO;
-        this.usuarioRepository = usuarioRepository;
-        this.costoEnvio = costoEnvio;
+    public CheckoutFacade(IPedidos pedidos, OrderRepository orderRepository, IProductos productos,
+                          IUsuarios usuarios, ICalculoEnvio envio) {
+        this.pedidos = pedidos;
+        this.orderRepository = orderRepository;
+        this.productos = productos;
+        this.usuarios = usuarios;
+        this.envio = envio;
     }
 
+    @Override
     @Transactional
-    public OrderDTO placeOrder(String username, String shippingAddress, Map<Long, Integer> items) {
-        if(shippingAddress==null||shippingAddress.isBlank()||items==null||items.isEmpty()) throw new IllegalArgumentException("Direccion y carrito son obligatorios");
-        Usuario user = usuarioRepository.findByEmailIgnoreCase(username)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
-
-        Order order = new Order(shippingAddress, LocalDate.now(), OrderStatus.PENDING, 0.0, user);
-        double cartTotal = 0.0;
-
-        for (Map.Entry<Long, Integer> entry : items.entrySet()) {
-            Long productId = entry.getKey();
-            Integer quantity = entry.getValue();
-            if(productId==null||quantity==null||quantity<=0) throw new IllegalArgumentException("Cantidad invalida");
-            Product product = productDAO.findById(productId)
-                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + productId));
-
-            if(!Boolean.TRUE.equals(product.getActive())) throw new IllegalStateException("Producto inactivo");
-            if (product.getStock() < quantity) {
-                throw new IllegalStateException("Stock insuficiente para el producto: " + product.getName());
-            }
-
-            double price = PrecioProducto.finalPrice(product);
-            OrderItem orderItem = new OrderItem(order, product, quantity, price);
-            order.addItem(orderItem);
-            
-            cartTotal += price * quantity;
+    public OrderDTO placeOrder(String username, String direccion, Map<Long, Integer> items) {
+        if (direccion == null || direccion.isBlank() || items == null || items.isEmpty()) {
+            throw new IllegalArgumentException("Dirección y carrito son obligatorios");
         }
-
-        double shippingCost = costoEnvio.calcular(cartTotal);
-        order.setTotal(cartTotal + shippingCost);
-
-        Order savedOrder = orderService.saveOrder(order);
-        return OrderDTO.desde(savedOrder);
+        var usuario = usuarios.consultarPerfilPorEmail(username);
+        Order order = new Order(direccion, LocalDate.now(), OrderStatus.PENDING, 0.0, usuario.id());
+        double subtotal = 0;
+        for (var entry : items.entrySet()) {
+            Long id = entry.getKey();
+            Integer cantidad = entry.getValue();
+            if (id == null || cantidad == null || cantidad <= 0) {
+                throw new IllegalArgumentException("Cantidad inválida");
+            }
+            ProductDTO producto = productos.getProductById(id);
+            if (!Boolean.TRUE.equals(producto.active()) || producto.stock() < cantidad) {
+                throw new IllegalStateException("Producto inactivo o stock insuficiente: " + producto.name());
+            }
+            order.addItem(new OrderItem(order, producto.id(), cantidad, producto.price()));
+            subtotal += producto.price() * cantidad;
+        }
+        order.setTotal(subtotal + envio.calcular(subtotal));
+        Order guardada = orderRepository.save(order);
+        return pedidos.consultarPedido(guardada.getId());
     }
 
+    @Override
     @Transactional
-    public OrderDTO purchase(String usuario,String direccion,Map<Long,Integer> items){
-        OrderDTO creada=placeOrder(usuario,direccion,items);
-        return orderService.confirmOrder(creada.id(),usuario);
+    public OrderDTO purchase(String username, String direccion, Map<Long, Integer> items) {
+        OrderDTO creada = placeOrder(username, direccion, items);
+        return pedidos.confirmOrder(creada.id(), username);
     }
 }

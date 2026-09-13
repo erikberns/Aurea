@@ -1,4 +1,4 @@
-package com.joyeriaEcommerce.AureaTPO.usuarios.presentacion;
+package com.joyeriaEcommerce.AureaTPO.infraestructura.presentacion;
 
 import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.UsuarioExceptions.CredencialesInvalidasException;
 import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.UsuarioExceptions.EmailYaRegistradoException;

@@ -1,4 +1,4 @@
-package com.joyeriaEcommerce.AureaTPO.categorias.datos;
+package com.joyeriaEcommerce.AureaTPO.productos.datos;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

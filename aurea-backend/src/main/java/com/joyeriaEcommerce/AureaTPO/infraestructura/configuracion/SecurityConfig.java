@@ -1,4 +1,4 @@
-package com.joyeriaEcommerce.AureaTPO.config;
+package com.joyeriaEcommerce.AureaTPO.infraestructura.configuracion;
 
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;

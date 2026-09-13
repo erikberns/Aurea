@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -94,15 +95,17 @@ public class UsuarioController {
     }
 
     @GetMapping("/sesion")
-    public UsuarioDTO sesion(Authentication auth){
-        if(auth==null||!auth.isAuthenticated()||!(auth.getPrincipal() instanceof com.joyeriaEcommerce.AureaTPO.usuarios.datos.Usuario u)) return null;
-        return usuarios.consultarPerfil(u.getId());
+    public UsuarioDTO sesion(Authentication auth) {
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            return null;
+        }
+        return usuarios.consultarPerfilPorEmail(auth.getName());
     }
     private void guardarSesion(Authentication auth,HttpServletRequest request){
         Authentication anterior=SecurityContextHolder.getContext().getAuthentication();
         HttpSession session=request.getSession(false);
         // Preserva el carrito invitado, pero nunca lo transfiere entre cuentas autenticadas.
-        if(session!=null&&anterior!=null&&anterior.getPrincipal() instanceof com.joyeriaEcommerce.AureaTPO.usuarios.datos.Usuario&&!anterior.getName().equals(auth.getName())){
+        if(session!=null&&anterior!=null&&anterior.isAuthenticated()&&!(anterior instanceof AnonymousAuthenticationToken)&&!anterior.getName().equals(auth.getName())){
             session.invalidate();session=null;
         }
         if(session==null) session=request.getSession(true); else request.changeSessionId();

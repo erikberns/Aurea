@@ -1,9 +1,8 @@
 package com.joyeriaEcommerce.AureaTPO.carrito;
 
 import com.joyeriaEcommerce.AureaTPO.carrito.negocio.ServicioDeCarrito;
-import com.joyeriaEcommerce.AureaTPO.productos.negocio.ProductService;
+import com.joyeriaEcommerce.AureaTPO.productos.negocio.IProductos;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderRepository;
-import com.joyeriaEcommerce.AureaTPO.ordenes.negocio.CheckoutMetricsState;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,9 +21,8 @@ import java.util.UUID;
 @SpringBootTest
 class CarritoHttpTests {
  @Autowired WebApplicationContext context;
- @Autowired ProductService productos;
+ @Autowired IProductos productos;
  @Autowired OrderRepository ordenes;
- @Autowired CheckoutMetricsState metricas;
  MockMvc mvc;
  @BeforeEach void setup(){mvc=MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();}
  org.springframework.test.web.servlet.request.RequestPostProcessor token() throws Exception {
@@ -53,7 +51,7 @@ class CarritoHttpTests {
   mvc.perform(get("/api/carrito").session(a)).andExpect(jsonPath("$.cantidadTotal").value(2));
   mvc.perform(get("/api/carrito").session(b)).andExpect(jsonPath("$.cantidadTotal").value(0));
   assertThat(a.getAttribute("scopedTarget.servicioDeCarrito")).isNotSameAs(b.getAttribute("scopedTarget.servicioDeCarrito"));
-  assertThat(context.getBean(ProductService.class)).isSameAs(context.getBean(ProductService.class));
+  assertThat(context.getBean(IProductos.class)).isSameAs(context.getBean(IProductos.class));
  }
  @Test void logoutDestruyeEstadoYCancelaAutenticacion() throws Exception {
   MockHttpSession a=sesion(); registrar(a); agregar(a,producto(),1);
@@ -80,18 +78,37 @@ class CarritoHttpTests {
   long id=producto(); MockHttpSession a=sesion(); registrar(a); agregar(a,id,2);
   mvc.perform(post("/api/carrito/checkout").session(a).with(token()).contentType("application/json")
    .content("{\"direccion\":\"Calle 123\"}"))
-   .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(24500.0));
+   .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(24500.0))
+   .andExpect(jsonPath("$.status").value("CONFIRMED"))
+   .andExpect(jsonPath("$.items[0].product.id").value(id))
+   .andExpect(jsonPath("$.items[0].price").value(10000.0))
+   .andExpect(jsonPath("$.user.nombre").value("Ana"));
   assertThat(productos.getProductById(id).stock()).isEqualTo(3);
+  mvc.perform(get("/api/ordenes/mis-pedidos").session(a))
+   .andExpect(status().isOk()).andExpect(jsonPath("$[0].items[0].product.id").value(id));
   mvc.perform(get("/api/carrito").session(a)).andExpect(jsonPath("$.cantidadTotal").value(0));
   mvc.perform(post("/api/carrito/checkout").session(a).with(token()).contentType("application/json")
    .content("{\"direccion\":\"Calle 123\"}")).andExpect(status().isBadRequest());
  }
- @Test void fallaDeStockConservaSeleccionSinPedidoNiMetricas() throws Exception {
+ @Test void cambiarDeCuentaDestruyeElCarritoDeLaSesionAnterior() throws Exception {
+  MockHttpSession anterior=sesion(); registrar(anterior); agregar(anterior,producto(),1);
+  ServicioDeCarrito carritoAnterior=(ServicioDeCarrito)anterior.getAttribute("scopedTarget.servicioDeCarrito");
+  String email=UUID.randomUUID()+"@example.com";
+  MockHttpSession nueva=(MockHttpSession)mvc.perform(post("/api/usuarios").session(anterior).with(token())
+   .contentType("application/json")
+   .content("{\"nombre\":\"Otra\",\"apellido\":\"Cuenta\",\"email\":\""+email+"\",\"contrasena\":\"ClaveSegura123\"}"))
+   .andExpect(status().isCreated()).andReturn().getRequest().getSession();
+  assertThat(anterior.isInvalid()).isTrue();
+  assertThatThrownBy(carritoAnterior::consultar).isInstanceOf(IllegalStateException.class);
+  mvc.perform(get("/api/usuarios/sesion").session(nueva)).andExpect(jsonPath("$.email").value(email));
+  mvc.perform(get("/api/carrito").session(nueva)).andExpect(jsonPath("$.cantidadTotal").value(0));
+ }
+ @Test void fallaDeStockConservaSeleccionSinPedido() throws Exception {
   long id=producto(); MockHttpSession a=sesion(); registrar(a); agregar(a,id,2); productos.updateStock(id,1);
-  long antes=ordenes.count(),confirmadas=metricas.getConfirmedOrdersCount();
+  long antes=ordenes.count();
   mvc.perform(post("/api/carrito/checkout").session(a).with(token()).contentType("application/json")
    .content("{\"direccion\":\"Calle 123\"}")).andExpect(status().isConflict());
-  assertThat(ordenes.count()).isEqualTo(antes); assertThat(metricas.getConfirmedOrdersCount()).isEqualTo(confirmadas);
+  assertThat(ordenes.count()).isEqualTo(antes);
   assertThat(productos.getProductById(id).stock()).isEqualTo(1);
   mvc.perform(get("/api/carrito").session(a)).andExpect(jsonPath("$.cantidadTotal").value(2));
  }
@@ -112,5 +129,35 @@ class CarritoHttpTests {
  @Test void mutacionSinCsrfSeRechaza() throws Exception {
   mvc.perform(post("/api/carrito/items").contentType("application/json").content("{\"productoId\":1,\"cantidad\":1}"))
    .andExpect(status().isForbidden());
+ }
+
+ @Test void falloDelObserverRevierteConfirmacionYStockEntreComponentes() throws Exception {
+  long primero=producto(), segundo=producto();
+  MockHttpSession sesion=sesion(); registrar(sesion);
+  String json=mvc.perform(post("/api/ordenes").session(sesion).with(token()).contentType("application/json")
+   .content("{\"shippingAddress\":\"Calle 123\",\"items\":[{\"productId\":"+primero+",\"quantity\":1},{\"productId\":"+segundo+",\"quantity\":2}]}"))
+   .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("PENDING"))
+   .andReturn().getResponse().getContentAsString();
+  Number pedido=JsonPath.read(json,"$.id");
+  productos.updateStock(segundo,1);
+  mvc.perform(post("/api/ordenes/"+pedido+"/confirmar").session(sesion).with(token()))
+   .andExpect(status().isConflict());
+  assertThat(productos.getProductById(primero).stock()).isEqualTo(5);
+  assertThat(productos.getProductById(segundo).stock()).isEqualTo(1);
+  mvc.perform(get("/api/ordenes/mis-pedidos").session(sesion))
+   .andExpect(status().isOk()).andExpect(jsonPath("$[0].status").value("PENDING"));
+ }
+
+ @Test void otroUsuarioNoPuedeConfirmarNiListarUnPedidoAjeno() throws Exception {
+  long producto=producto(); MockHttpSession propietario=sesion(),otro=sesion();
+  registrar(propietario); registrar(otro);
+  String json=mvc.perform(post("/api/ordenes").session(propietario).with(token()).contentType("application/json")
+   .content("{\"shippingAddress\":\"Calle 123\",\"items\":[{\"productId\":"+producto+",\"quantity\":1}]}"))
+   .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+  Number pedido=JsonPath.read(json,"$.id");
+  mvc.perform(post("/api/ordenes/"+pedido+"/confirmar").session(otro).with(token()))
+   .andExpect(status().isForbidden());
+  mvc.perform(get("/api/ordenes/mis-pedidos").session(otro))
+   .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
  }
 }

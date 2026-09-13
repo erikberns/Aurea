@@ -1,7 +1,5 @@
 package com.joyeriaEcommerce.AureaTPO.productos.datos;
 
-import com.joyeriaEcommerce.AureaTPO.categorias.datos.Category;
-import com.joyeriaEcommerce.AureaTPO.descuentos.datos.Discount;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -44,14 +42,10 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
-    @ManyToOne
-    @JoinColumn(name = "discount_id")
-    private Discount discount;
-
     protected Product() {
     }
 
-    public Product(Boolean active, String description, String name, Double price, String imageUrl, Integer stock, Category category, Discount discount) {
+    public Product(Boolean active, String description, String name, Double price, String imageUrl, Integer stock, Category category) {
         this.active = active;
         this.description = description;
         this.name = name;
@@ -59,7 +53,6 @@ public class Product {
         this.imageUrl = imageUrl;
         this.stock = stock;
         this.category = category;
-        this.discount = discount;
     }
 
     public Long getId() {
@@ -122,11 +115,4 @@ public class Product {
         this.category = category;
     }
 
-    public Discount getDiscount() {
-        return discount;
-    }
-
-    public void setDiscount(Discount discount) {
-        this.discount = discount;
-    }
 }

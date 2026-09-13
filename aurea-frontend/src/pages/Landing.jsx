@@ -1,54 +1,9 @@
 import { Link } from "react-router-dom";
-import { useCart } from "../context/CartContext";
+import { useEffect, useState } from "react";
+import { catalogoService } from "../services/catalogoService";
+import ProductCard from "../components/ProductCard";
 
 const fmt = new Intl.NumberFormat("es-AR");
-
-const JOYAS_MOCK = [
-  {
-    id: "j-001",
-    categoria: "Anillos apilables",
-    nombre: "Anillo Apilable 'Luna Nueva'",
-    descripcion: "Plata de Ley 925 con circonitas engastadas a mano.",
-    precio: 45000,
-    badge: "Más Vendido",
-    opciones: ["10", "12", "14", "16"],
-    imagen:
-      "https://images.unsplash.com/photo-1603561591411-07134e71a2a9?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: "j-002",
-    categoria: "Collares & Medallas",
-    nombre: "Collar Medalla 'Astro Solar'",
-    descripcion: "Baño de Oro 18k con cadena ajustable (40–45 cm).",
-    precio: 89000,
-    badge: "Tendencia",
-    opciones: ["Cadena 45 cm (Ajustable)"],
-    imagen:
-      "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: "j-003",
-    categoria: "Pulseras & Eslabones",
-    nombre: "Pulsera Eslabones 'Aura Link'",
-    descripcion: "Plata de Ley 925 rodiada antidesgaste de brillo espejo.",
-    precio: 65000,
-    badge: "Favorito",
-    opciones: ["17 cm + 3 cm extensión"],
-    imagen:
-      "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=800&auto=format&fit=crop",
-  },
-  {
-    id: "j-004",
-    categoria: "Pendientes & Huggies",
-    nombre: "Pendientes Aros 'Demi Huggies'",
-    descripcion: "Plata 925 con baño de Oro 18k y cierre click seguro.",
-    precio: 39000,
-    badge: "Esenciales",
-    opciones: ["12 mm (Mini aro)"],
-    imagen:
-      "https://images.unsplash.com/photo-1630019852942-f89202989a59?q=80&w=800&auto=format&fit=crop",
-  }
-];
 
 const CATEGORIAS = [
   {
@@ -82,45 +37,6 @@ const CATEGORIAS = [
     filtro: "Pendientes & Huggies",
     imagen:
       "https://images.unsplash.com/photo-1630019852942-f89202989a59?q=80&w=800&auto=format&fit=crop",
-  },
-];
-
-const DESTACADOS = [
-  {
-    joya: JOYAS_MOCK[0],
-    material: "Plata 925",
-    tag: { label: "Más Vendido", cls: "bg-primary-container text-on-primary" },
-    stock: { label: "En Stock Inmediato", dot: "bg-emerald-600", text: "text-emerald-800" },
-    detalle: "Diseño ergonómico texturado",
-    cuota: "3 cuotas fijas de $15.000 con Mercado Pago",
-    nota: "Reserva segura por 5 minutos",
-  },
-  {
-    joya: JOYAS_MOCK[1],
-    material: "Vermeil 18k",
-    tag: { label: "Edición Especial", cls: "bg-secondary-container text-on-secondary-container" },
-    stock: { label: "En Stock Inmediato", dot: "bg-emerald-600", text: "text-emerald-800" },
-    detalle: "Cadena 45cm regulable",
-    cuota: "3 cuotas fijas de $29.666",
-    nota: "Envío Gratis aplicado",
-  },
-  {
-    joya: JOYAS_MOCK[2],
-    material: "Plata 925",
-    tag: null,
-    stock: { label: "Últimas 4 unidades", dot: "bg-amber-600", text: "text-amber-800" },
-    detalle: "Eslabón soldado a mano",
-    cuota: "3 cuotas fijas de $21.666",
-    nota: "Envío Gratis a todo el país",
-  },
-  {
-    joya: JOYAS_MOCK[3],
-    material: "Vermeil 18k",
-    tag: { label: "Hipoalergénico", cls: "bg-primary-fixed text-on-primary-fixed" },
-    stock: { label: "En Stock Inmediato", dot: "bg-emerald-600", text: "text-emerald-800" },
-    detalle: "Cierre de click seguro 12mm",
-    cuota: "3 cuotas fijas de $13.000",
-    nota: "Reserva segura por 5 minutos",
   },
 ];
 
@@ -172,7 +88,15 @@ function Stars({ size = "text-sm" }) {
 }
 
 export default function Landing() {
-  const { agregarItem } = useCart();
+  const [destacados, setDestacados] = useState(null);
+
+  useEffect(() => {
+    let activo = true;
+    catalogoService.buscarJoyas().then(joyas => {
+      if (activo) setDestacados(joyas.slice(0, 4));
+    });
+    return () => { activo = false; };
+  }, []);
 
   return (
     <>
@@ -345,67 +269,10 @@ export default function Landing() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {DESTACADOS.map(({ joya, material, tag, stock, detalle, cuota, nota }) => (
-              <div
-                key={joya.id}
-                className="bg-surface-container-lowest rounded-xl p-3 border border-outline-variant/30 shadow-[0_4px_20px_-2px_rgba(140,101,65,0.06)] flex flex-col justify-between group hover:border-primary-container/40 transition-colors"
-              >
-                <div>
-                  <div className="aspect-[4/5] rounded-lg overflow-hidden relative bg-surface-container mb-3">
-                    <Link to={`/productos/${joya.id}`}>
-                      <img
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        alt={joya.nombre}
-                        src={joya.imagen}
-                      />
-                    </Link>
-                    <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5">
-                      <span className="bg-surface-container-lowest/90 backdrop-blur-md px-2.5 py-0.5 rounded-full font-label-sm text-label-sm text-secondary border border-outline-variant/30">
-                        {material}
-                      </span>
-                      {tag && (
-                        <span className={`px-2.5 py-0.5 rounded-full font-label-sm text-label-sm ${tag.cls}`}>
-                          {tag.label}
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      aria-label="Agregar a favoritos"
-                      className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center text-outline hover:text-primary transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">favorite</span>
-                    </button>
-                  </div>
-                  <div className="px-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`inline-block w-2 h-2 rounded-full ${stock.dot}`} />
-                      <span className={`font-body-sm text-[11px] font-semibold ${stock.text}`}>{stock.label}</span>
-                    </div>
-                    <Link to={`/productos/${joya.id}`}>
-                      <h3 className="font-title-md text-title-md text-on-surface hover:text-primary transition-colors">
-                        {joya.nombre}
-                      </h3>
-                    </Link>
-                    <p className="font-body-sm text-body-sm text-outline-variant mb-2">{detalle}</p>
-                    <div className="mb-3">
-                      <p className="font-headline-sm text-headline-sm text-on-surface font-semibold">
-                        ${fmt.format(joya.precio)} <span className="text-xs font-normal text-outline">ARS</span>
-                      </p>
-                      <p className="font-label-sm text-label-sm text-primary">{cuota}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="px-1 pt-2 border-t border-outline-variant/20 flex flex-col gap-2">
-                  <button
-                    onClick={() => agregarItem(joya, joya.opciones?.[0])}
-                    className="w-full h-10 bg-primary-container hover:bg-secondary text-on-primary rounded-lg font-label-md text-label-md flex items-center justify-center gap-2 transition-colors active:scale-[0.99]"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">shopping_bag</span>
-                    <span>Añadir a la Bolsa</span>
-                  </button>
-                  <p className="text-center font-body-sm text-[11px] text-outline">{nota}</p>
-                </div>
-              </div>
+            {destacados === null && <p>Cargando productos...</p>}
+            {destacados?.length === 0 && <p>No hay productos disponibles para mostrar.</p>}
+            {destacados?.map(joya => (
+              <ProductCard key={joya.id} joya={joya} />
             ))}
           </div>
         </div>
