@@ -1,124 +1,83 @@
-# Áurea Joyas — Frontend (React)
+# Áurea Joyas
 
-Frontend del eCommerce **Áurea Joyas** (Grupo 8, Desarrollo de Aplicaciones II), construido en
-**React + Vite + Tailwind CSS**, replicando el sistema de diseño "Modern Warmth Luxury" generado
-en Stitch (paleta, tipografías Playfair Display / Plus Jakarta Sans, radios y espaciados).
+Aplicación React + Spring Boot + JPA/PostgreSQL. El navegador consume la API real: no hay autenticación ni carrito simulado en localStorage.
 
-Este frontend actúa como **cliente de la API REST** que expone el backend Spring Boot, tal como
-está justificado en la documentación del TP: React se limita a la capa de presentación, y todas
-las reglas de negocio (validaciones de registro, hashing de contraseñas, autorización por rol)
-viven en `ServicioDeUsuarios`.
+## Ejecución local
 
-## Cómo correrlo
+Backend: usar un JDK compatible (verificado con JDK 21) y Maven/Maven Wrapper. Configurar las variables que referencia `aurea-backend/src/main/resources/application.properties`, incluyendo conexión, usuario y contraseña de PostgreSQL y `DDL_AUTO`. Ejecutar desde `aurea-backend`:
 
-```bash
+```powershell
+mvn spring-boot:run
+```
+
+Frontend: copiar `.env.example` a `.env`, configurar `VITE_API_BASE_URL=http://localhost:8080/api` y ejecutar desde `aurea-frontend`:
+
+```powershell
 npm install
 npm run dev
 ```
 
-Abre en `http://localhost:5173`.
+Usar el mismo hostname en ambos lados (por ejemplo localhost) y el origen autorizado por `CORS_ALLOWED_ORIGIN`. La sesión viaja en una cookie HttpOnly `JSESSIONID`. El cliente obtiene el token con `GET /api/csrf` antes de cada mutación. No se utiliza JWT.
 
-## Conexión con el backend
+## Stateful y stateless para la primera entrega
 
-Por defecto el frontend corre en **modo mock** (`VITE_USE_MOCK=true`): simula
-`ServicioDeUsuarios` con `localStorage`, para poder demostrar registro / login / edición de
-perfil / cambio de contraseña sin tener el backend Spring Boot levantado.
+**Stateful:** `carrito/negocio/ServicioDeCarrito` implementa `ICarrito` y usa `@Service` + `@SessionScope`. Spring crea una instancia por sesión HTTP cuando se consulta por primera vez. Su mapa conserva identificadores y cantidades entre solicitudes. Los métodos sincronizados evitan modificaciones simultáneas sobre la misma instancia. Cada consulta obtiene precios actuales del servidor. Las sesiones diferentes tienen selecciones independientes.
 
-Para conectarlo al backend real:
+`@PostConstruct` registra la creación y `@PreDestroy` vacía el mapa y registra la destrucción. El logout invalida la sesión y destruye el bean; el vencimiento de sesión también dispara su destrucción cuando el contenedor elimina la sesión. Recargar la página conserva el carrito mientras la cookie y la sesión sigan vigentes. Varias pestañas del mismo navegador comparten sesión y carrito. El estado es temporal: no se conserva al reiniciar el backend ni se replica entre instancias.
 
-1. Copiá `.env.example` a `.env`.
-2. Seteá `VITE_USE_MOCK=false`.
-3. Seteá `VITE_API_BASE_URL` apuntando a tu backend (por defecto `http://localhost:8080/api`).
-4. Usá los siguientes endpoints, que ya están contemplados en `src/services/usuariosService.js`
-   (`realAdapter`):
+El carrito permite selección como invitado y la conserva al iniciar sesión; el servidor cambia el identificador de sesión. Si se autentica una cuenta distinta desde una sesión ya autenticada, se invalida la anterior. Comprar exige autenticación. Agregar no reserva inventario.
 
-   | Operación de iUsuarios      | Método y Path                          |
-   |------------------------------|-----------------------------------------|
-   | `registrarCliente`           | `POST /api/usuarios`                    |
-   | `autenticar`                 | `POST /api/usuarios/autenticar`         |
-   | `consultarPerfil`            | `GET  /api/usuarios/{id}`               |
-   | `actualizarPerfil`           | `PATCH /api/usuarios/{id}`              |
-   | `cambiarContrasena`          | `PATCH /api/usuarios/{id}/contrasena`   |
-   | `asignarRol`                 | `PATCH /api/usuarios/{id}/rol`          |
+**Stateless:** `productos/negocio/ProductService` no conserva selección, usuario ni datos de solicitudes anteriores en sus atributos. Spring lo administra como singleton y le inyecta sus repositorios. Singleton describe el alcance de instancia; stateless describe su comportamiento. Tiene callbacks de inicialización y destrucción. `CostoEnvio` es otro ejemplo de cálculo sin estado conversacional.
 
-   `autenticar` debe devolver `{ token, usuario }`, donde `token` es el JWT emitido por el
-   backend. El resto de los endpoints (salvo registro y autenticación) requieren el header
-   `Authorization: Bearer <token>`, que `httpClient.js` agrega automáticamente.
+## Capas y patrones
 
-## Arquitectura del frontend (capas)
+- Presentación: React y controladores REST, incluyendo `CarritoController`.
+- Negocio: `ServicioDeCarrito`, `ProductService`, `OrderService`, `CheckoutFacade`.
+- Datos: `ProductDAO`/`ProductDAOImpl`, repositorios JPA y entidades. El carrito utiliza el acceso existente a Productos; su selección temporal vive en el bean de sesión, sin una tabla artificial de carrito.
+- DAO: acceso a productos encapsulado tras `ProductDAO`.
+- Facade: `CheckoutFacade` coordina la compra.
+- Strategy: `CostoEnvio` selecciona envío gratuito o estándar mediante `ShippingStrategy`.
+- Observer: confirmación de pedidos publica un evento. El stock participa en la transacción; métricas y notificación simulada se procesan después del commit. Hay un único listener de notificaciones.
 
+## API del carrito
+
+| Método | Ruta | Operación |
+|---|---|---|
+| GET | `/api/carrito` | Consultar selección y totales calculados por el servidor |
+| POST | `/api/carrito/items` | Agregar `{ "productoId": 1, "cantidad": 1 }` |
+| DELETE | `/api/carrito/items/{id}` | Quitar un producto |
+| DELETE | `/api/carrito` | Vaciar selección |
+| POST | `/api/carrito/checkout` | Comprar con `{ "direccion": "Calle 123" }`; requiere sesión autenticada |
+| GET | `/api/usuarios/sesion` | Perfil autenticado o respuesta vacía para invitado |
+| POST | `/api/usuarios/salir` | Invalidar sesión y destruir carrito |
+
+Todas las mutaciones requieren CSRF. `POST /api/carrito/checkout` usa los ítems del servidor. Crea y confirma la orden dentro de una transacción. Solo después de que esa operación retorna con commit se vacía la selección. Ante stock insuficiente o error de persistencia, se conserva el carrito. La confirmación no realiza un cobro externo.
+
+## Guion de demostración
+
+1. Iniciar backend y frontend; abrir un navegador normal (A) y uno incógnito (B).
+2. En A agregar dos unidades de una joya. Recargar: permanecen. Observar el log de creación del carrito.
+3. En B consultar la bolsa: está vacía. Agregar otro producto: A permanece sin cambios. Cada sesión registra una instancia de carrito diferente.
+4. En A registrarse o iniciar sesión. La selección de invitado se conserva; consultar la cuenta acredita la sesión real.
+5. Confirmar un pedido: mostrar el total devuelto, el historial y el stock descontado. La bolsa queda vacía.
+6. Volver a agregar un producto y cerrar sesión: observar el log `Carrito ... destruido`. Al consultar una nueva bolsa, está vacía. B conserva su carrito.
+7. Mostrar en código `@SessionScope`, el mapa y ambos callbacks. Comparar con `ProductService`: dependencias compartidas, sin estado conversacional.
+8. Mostrar una operación administrativa: un cliente recibe 403; un administrador puede ejecutarla. Es posible demostrar los endpoints administrativos con un cliente HTTP; no existe un panel administrativo completo.
+
+Para mostrar vencimiento, configurar temporalmente `server.servlet.session.timeout` y esperar la limpieza de sesiones del servidor. El timeout se mide desde la última actividad; la destrucción por expiración puede demorarse hasta la siguiente limpieza del contenedor.
+
+## Validación
+
+```powershell
+# Backend: pruebas con H2, sin tocar PostgreSQL
+mvn test
+# Frontend
+npm run build
+npm run lint
 ```
-src/
-  api/httpClient.js        -> capa de acceso a datos (fetch + JWT + manejo de errores)
-  services/                -> capa de servicios (contrato iUsuarios / iCatalogo)
-    usuariosService.js        - adapter real (REST) + adapter mock (localStorage)
-    catalogoService.js        - datos de catálogo (stateless)
-  context/                  -> estado de aplicación
-    AuthContext.jsx            - sesión de usuario (análogo cliente de "stateless con JWT")
-    CartContext.jsx            - carrito (análogo cliente de ServicioDeCarrito, stateful)
-  components/               -> capa de presentación reutilizable (Header, Footer, cards, UI)
-  pages/                     -> pantallas / rutas
-```
 
-Esta separación refleja, del lado del cliente, la arquitectura en capas exigida por la
-consigna (presentación / negocio / datos), y el patrón **Adapter** aplicado en
-`usuariosService.js`: las páginas siempre llaman al mismo contrato (`usuariosService.xxx`)
-sin importar si detrás hay el backend real o el mock de desarrollo.
+`CarritoHttpTests` cubre aislamiento de sesiones, persistencia entre peticiones, destrucción por logout, token CSRF real, conservación del carrito invitado al autenticar, compra, stock insuficiente, cantidades inválidas y autorización de administrador. Las pruebas HTTP usan el contexto y los filtros reales de Spring con MockMvc.
 
-## Componentes Spring y ciclo de vida
+## Alcance pendiente
 
-El backend incluye componentes gestionados por el contenedor de Spring mediante anotaciones como
-`@RestController`, `@Service`, `@Repository`, `@Component`, `@Configuration` y `@Bean`.
-
-- `ProductService` es un componente **stateless**: no conserva estado propio entre invocaciones,
-  delega persistencia en `ProductDAO` y valida su inicialización con `@PostConstruct`.
-- `CheckoutMetricsState` es un componente **stateful**: conserva en memoria el contador de
-  órdenes confirmadas, el último id confirmado y la fecha de confirmación durante la vida de la
-  aplicación. Spring gestiona su ciclo de vida con `@PostConstruct` y `@PreDestroy`, y
-  `OrderService` actualiza ese estado cuando una orden pasa a `CONFIRMED`.
-- `NotificationService` también evidencia ciclo de vida gestionado por el contenedor: se
-  inicializa con `@PostConstruct`, libera recursos lógicos con `@PreDestroy` y escucha eventos
-  de dominio con `@EventListener`.
-
-## Patrones de diseño aplicados
-
-- **DAO**: `ProductDAO` define el contrato de acceso a productos y `ProductDAOImpl` encapsula
-  JPA/`EntityManager`. Esto separa persistencia de reglas de negocio y permite cambiar la fuente
-  de datos sin modificar `ProductService`.
-- **Facade**: `CheckoutFacade` concentra el caso de uso de checkout, coordinando usuario,
-  productos, orden, items y costo de envio. El controlador delega en una única operación de alto
-  nivel en vez de conocer todos los pasos internos.
-- **Strategy**: `ShippingStrategy` permite intercambiar algoritmos de costo de envio. Las
-  implementaciones `FreeShippingStrategy` y `StandardShippingStrategy` aíslan cada regla y evitan
-  condicionales dispersos.
-- **Adapter**: `usuariosService.js` mantiene el mismo contrato para las páginas React y alterna
-  entre `realAdapter` REST y `mockAdapter` local, útil para desarrollo sin backend.
-- **Observer/Event Listener**: `OrderService` publica `OrderConfirmedEvent` y los servicios de
-  inventario/notificaciones reaccionan con `@EventListener`, desacoplando la confirmación de sus
-  efectos secundarios.
-
-## Seguridad
-
-El backend usa JWT con Spring Security. `SecurityConfig` deja públicos solo registro,
-autenticación, consulta de productos y Actuator `health/info`; el resto requiere autenticación.
-Las operaciones sensibles agregan autorización declarativa por rol con `@PreAuthorize`, por
-ejemplo alta/baja/modificación de productos solo `ADMIN`, aprobación de devoluciones para
-`ADMIN` u `OPERADOR_INVENTARIO`, y asignación de roles solo `ADMIN`.
-
-## Páginas incluidas
-
-- **/** — Landing page oficial (réplica del mock de Stitch "Home Landing Page Oficial"): hero,
-  categorías, piezas más deseadas, filosofía de marca, beneficios y testimonios. El header y el
-  footer de esta pantalla se usan en todo el sitio, ya que es la referencia "oficial" de marca.
-- **/catalogo** — catálogo de joyas con filtros (réplica del mock de Stitch "Catálogo").
-- **/productos/:id** — ficha de producto.
-- **/checkout** — bolsa / resumen de compra.
-- **/login** y **/registro** — `iUsuarios.autenticar` y `iUsuarios.registrarCliente`.
-- **/cuenta** (ruta protegida) — `consultarPerfil`, `actualizarPerfil`, `cambiarContrasena` y
-  simulación de historial de pedidos.
-
-## Pendiente para las próximas entregas
-
-- Reemplazar `catalogoService.js` por llamadas reales a `ServicioDeCatalogo`.
-- Conectar `CartContext` a `ServicioDeCarrito` / `ServicioDeInventario` (reserva temporal).
-- Sumar manejo de expiración de JWT y refresco de sesión.
+Pagos y correos externos, reservas de inventario con vencimiento, SOAP, broker, colas y tópicos quedan para siguientes etapas. No se presentan los mensajes de consola como correos enviados. `CheckoutMetricsState` es una métrica global, no el ejemplo stateful principal. Los pedidos y productos siguen compartiendo el backend y la base de datos.

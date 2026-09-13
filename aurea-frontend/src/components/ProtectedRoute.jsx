@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
  * Réplica, del lado del cliente, de la seguridad declarativa que
  * ServicioDeUsuarios exigirá en el backend (autenticación + autorización
  * por rol) para operaciones sensibles. Esto NO reemplaza la verificación
- * real del backend (que siempre debe volver a validar el JWT y el rol),
+ * real del backend (que siempre debe volver a validar la sesión y el rol),
  * es una mejora de experiencia: evita mostrarle una pantalla protegida a
  * quien no inició sesión.
  */

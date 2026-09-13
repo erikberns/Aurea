@@ -66,8 +66,8 @@ export default function ProductoDetalle() {
           )}
 
           <button
-            onClick={() => {
-              agregarItem(joya, opcion);
+            onClick={async () => {
+              if (!await agregarItem(joya, opcion)) return;
               setAgregado(true);
               setTimeout(() => setAgregado(false), 1800);
             }}

@@ -66,6 +66,12 @@ public class ApiExceptionHandler {
         return new ApiError(Instant.now(), HttpStatus.CONFLICT.value(), "El recurso fue modificado por otro usuario. Por favor, recargue la página.", Map.of());
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    ApiError conflicto(IllegalStateException ex){return new ApiError(Instant.now(),409,ex.getMessage(),Map.of());}
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    ApiError autenticacion(org.springframework.security.core.AuthenticationException ex){return new ApiError(Instant.now(),401,"Credenciales invalidas",Map.of());}
     record ApiError(Instant timestamp, int status, String mensaje, Map<String, String> errores) {
     }
 }

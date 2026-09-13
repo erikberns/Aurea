@@ -3,59 +3,29 @@ import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { PrimaryButton } from "../components/ui";
-import { createOrder, confirmOrder } from "../services/ordenesService";
+import { httpRequest } from "../api/httpClient";
 
 const fmt = new Intl.NumberFormat("es-AR");
 
 export default function Checkout() {
-  const { items, quitarItem, total, vaciarCarrito } = useCart();
+  const { items, quitarItem, total, envio, totalCompra, refrescar, error: carritoError, cargando } = useCart();
   const { estaAutenticado } = useAuth();
   const [shippingAddress, setShippingAddress] = useState("");
   const [addressError, setAddressError] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Billing states
-  const [showBilling, setShowBilling] = useState(false);
-  const [cardName, setCardName] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
-
   const navigate = useNavigate();
 
-  const openBillingForm = () => {
-    if (!shippingAddress.trim()) {
-      setAddressError(true);
-      return;
-    }
-    setAddressError(false);
-    setShowBilling(true);
-  };
-
-  const processPayment = async (e) => {
-    e.preventDefault();
-    if (!cardName || !cardNumber || !expiry || !cvv) {
-      alert("Por favor completá todos los datos de facturación.");
-      return;
-    }
-    setLoading(true);
+  const processPayment = async () => {
+    if (!shippingAddress.trim()) { setAddressError(true); return; }
+    setAddressError(false); setLoading(true);
     try {
-      const formattedItems = items.map(item => ({
-        productId: item.id,
-        quantity: item.cantidad
-      }));
-      const orden = await createOrder(shippingAddress, formattedItems);
-      await confirmOrder(orden.id);
-      vaciarCarrito();
-      alert("¡Compra confirmada con éxito!");
-      navigate("/");
-    } catch (error) {
-      console.error(error);
-      alert("Hubo un error al procesar tu compra.");
-    } finally {
-      setLoading(false);
-      setShowBilling(false);
-    }
+      const orden = await httpRequest("/carrito/checkout", { method: "POST", body: { direccion: shippingAddress } });
+      await refrescar();
+      alert(`Pedido #${orden.id} confirmado por $${fmt.format(orden.total)}. No se realizó un cobro.`);
+      navigate("/cuenta");
+    } catch (error) { alert(error.message); await refrescar(); }
+    finally { setLoading(false); }
   };
 
   return (
@@ -107,7 +77,7 @@ export default function Checkout() {
               </div>
               <div className="flex justify-between font-body-md text-body-md text-on-surface-variant mb-4">
                 <span>Envío</span>
-                <span>{total >= 60000 ? "Gratis" : "$4.500"}</span>
+                <span>{envio === 0 ? "Gratis" : `$${fmt.format(envio)}`}</span>
               </div>
               <div className="mb-4">
                 <label className="block font-label-md text-label-md text-on-surface mb-2">
@@ -124,7 +94,7 @@ export default function Checkout() {
                   className={`w-full border rounded p-2 font-body-sm text-body-sm text-on-surface bg-surface-container-lowest ${
                     addressError ? "border-error" : "border-outline-variant"
                   }`}
-                  disabled={!estaAutenticado || loading}
+                  disabled={!estaAutenticado || loading || cargando}
                 />
                 {addressError && (
                   <p className="font-body-sm text-body-sm text-error mt-1">Por favor ingresá una dirección de envío.</p>
@@ -132,13 +102,13 @@ export default function Checkout() {
               </div>
               <div className="flex justify-between font-title-md text-title-md text-on-surface border-t border-outline-variant/40 pt-4 mb-6">
                 <span>Total</span>
-                <span>${fmt.format(total >= 60000 ? total : total + 4500)}</span>
+                <span>${fmt.format(totalCompra)}</span>
               </div>
-              <PrimaryButton 
-                disabled={!estaAutenticado || loading} 
-                onClick={openBillingForm}
+              <PrimaryButton
+                disabled={!estaAutenticado || loading || cargando}
+                onClick={processPayment}
               >
-                {loading ? "Procesando..." : (estaAutenticado ? "Ingresar Datos de Pago" : "Iniciá sesión para pagar")}
+                {loading ? "Procesando..." : (estaAutenticado ? "Confirmar pedido" : "Iniciá sesión para comprar")}
               </PrimaryButton>
               {!estaAutenticado && (
                 <p className="font-body-sm text-body-sm text-on-surface-variant text-center mt-3">
@@ -157,81 +127,8 @@ export default function Checkout() {
         </div>
       )}
 
-      {/* Modal de Facturación */}
-      {showBilling && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1e1b18]/60 p-4">
-          <div className="bg-surface-container-lowest border border-outline-variant/40 rounded-sm p-6 max-w-md w-full relative shadow-lg">
-            <button
-              onClick={() => setShowBilling(false)}
-              className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface transition-colors"
-              disabled={loading}
-            >
-              <span className="material-symbols-outlined">close</span>
-            </button>
-            <h2 className="font-headline-sm text-headline-sm text-on-surface mb-6">Datos de Facturación</h2>
-            <form onSubmit={processPayment} className="space-y-4">
-              <div>
-                <label className="block font-label-md text-label-md text-on-surface mb-2">Nombre en la tarjeta</label>
-                <input
-                  type="text"
-                  value={cardName}
-                  onChange={(e) => setCardName(e.target.value)}
-                  placeholder="Ej: Juan Pérez"
-                  className="w-full border border-outline-variant rounded-sm p-2.5 font-body-sm text-body-sm text-on-surface bg-surface-container-lowest focus:border-primary focus:outline-none transition-colors"
-                  disabled={loading}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block font-label-md text-label-md text-on-surface mb-2">Número de tarjeta</label>
-                <input
-                  type="text"
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value)}
-                  placeholder="Ej: 4500 1234 5678 9010"
-                  className="w-full border border-outline-variant rounded-sm p-2.5 font-body-sm text-body-sm text-on-surface bg-surface-container-lowest focus:border-primary focus:outline-none transition-colors"
-                  disabled={loading}
-                  maxLength="19"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-label-md text-label-md text-on-surface mb-2">Vencimiento</label>
-                  <input
-                    type="text"
-                    value={expiry}
-                    onChange={(e) => setExpiry(e.target.value)}
-                    placeholder="MM/AA"
-                    className="w-full border border-outline-variant rounded-sm p-2.5 font-body-sm text-body-sm text-on-surface bg-surface-container-lowest focus:border-primary focus:outline-none transition-colors"
-                    disabled={loading}
-                    maxLength="5"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-label-md text-label-md text-on-surface mb-2">CVV</label>
-                  <input
-                    type="password"
-                    value={cvv}
-                    onChange={(e) => setCvv(e.target.value)}
-                    placeholder="123"
-                    className="w-full border border-outline-variant rounded-sm p-2.5 font-body-sm text-body-sm text-on-surface bg-surface-container-lowest focus:border-primary focus:outline-none transition-colors"
-                    disabled={loading}
-                    maxLength="4"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="pt-4">
-                <PrimaryButton type="submit" disabled={loading} className="w-full py-3">
-                  {loading ? "Procesando pago..." : `Pagar $${fmt.format(total >= 60000 ? total : total + 4500)}`}
-                </PrimaryButton>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <p className="mt-6 text-sm text-on-surface-variant">La confirmación registra el pedido. El pago externo todavía no está integrado.</p>
+      {carritoError && <p role="alert" className="mt-4 text-error">{carritoError}</p>}
     </div>
   );
 }

@@ -167,16 +167,15 @@ export default function Cuenta() {
   useEffect(() => {
     // Llamada a iUsuarios.consultarPerfil(usuarioId) al entrar a la sección
     usuariosService.consultarPerfil(usuario.id).then(setPerfil).catch(() => setPerfil(usuario));
-  }, [usuario.id]);
+  }, [usuario]);
 
   const onPerfilActualizado = (datos) => {
     setPerfil((prev) => ({ ...prev, ...datos }));
     actualizarUsuarioLocal(datos);
   };
 
-  const onCerrarSesion = () => {
-    cerrarSesion();
-    navigate("/");
+  const onCerrarSesion = async () => {
+    if (await cerrarSesion()) navigate("/");
   };
 
   const tabs = [

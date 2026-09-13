@@ -27,7 +27,7 @@ public class OrderController {
         String username = authentication.getName();
         java.util.Map<Long, Integer> itemsMap = new java.util.HashMap<>();
         for (CreateOrderRequest.CreateOrderItemRequest item : request.getItems()) {
-            itemsMap.put(item.getProductId(), item.getQuantity());
+            if(itemsMap.putIfAbsent(item.getProductId(), item.getQuantity())!=null) throw new IllegalArgumentException("Producto repetido");
         }
         return ResponseEntity.ok(checkoutFacade.placeOrder(username, request.getShippingAddress(), itemsMap));
     }

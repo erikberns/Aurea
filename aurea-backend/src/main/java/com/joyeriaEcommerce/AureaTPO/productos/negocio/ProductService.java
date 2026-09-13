@@ -26,10 +26,12 @@ public class ProductService {
         System.out.println("[LIFECYCLE] ProductService montado. Total de productos cargados en memoria/DB: " + count);
     }
 
+    @Transactional(readOnly=true)
     public java.util.List<ProductDTO> getAllProducts() {
         return productDAO.findAll().stream().map(ProductDTO::desde).toList();
     }
 
+    @Transactional(readOnly=true)
     public ProductDTO getProductById(Long id) {
         Product product = productDAO.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
@@ -38,6 +40,8 @@ public class ProductService {
 
     @Transactional
     public ProductDTO createProduct(String name, String description, Double price, Integer stock, Long categoryId, String imageUrl) {
+        if(name==null||name.isBlank()) throw new IllegalArgumentException("Nombre obligatorio");
+        validarPrecio(price); validarStock(stock);
         com.joyeriaEcommerce.AureaTPO.categorias.datos.Category category = null;
         if (categoryId != null) {
             category = categoryRepository.findById(categoryId)
@@ -49,6 +53,7 @@ public class ProductService {
 
     @Transactional
     public ProductDTO updatePrice(Long productId, Double newPrice) {
+        validarPrecio(newPrice);
         Product product = productDAO.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
         product.setPrice(newPrice);
@@ -81,6 +86,7 @@ public class ProductService {
 
     @Transactional
     public ProductDTO updateStock(Long productId, Integer newStock) {
+        validarStock(newStock);
         Product product = productDAO.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
         product.setStock(newStock);
@@ -110,4 +116,9 @@ public class ProductService {
             }
         }
     }
+
+    private void validarPrecio(Double p){if(p==null||!Double.isFinite(p)||p<0) throw new IllegalArgumentException("Precio invalido");}
+    private void validarStock(Integer s){if(s==null||s<0) throw new IllegalArgumentException("Stock invalido");}
+    @jakarta.annotation.PreDestroy
+    public void destruir(){System.out.println("[CICLO DE VIDA] ProductService stateless destruido");}
 }

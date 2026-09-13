@@ -1,71 +1,39 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { usuariosService } from "../services/usuariosService";
-
-const SESSION_KEY = "aurea_session_usuario";
+import { httpRequest } from "../api/httpClient";
 const AuthContext = createContext(null);
-
 export function AuthProvider({ children }) {
   const [usuario, setUsuario] = useState(null);
   const [cargando, setCargando] = useState(true);
-
-  // Al montar el provider, restauramos la sesión desde localStorage.
-  // Ahora la seguridad se maneja con la cookie JSESSIONID,
-  // pero guardamos el perfil localmente para tener nombre y rol.
   useEffect(() => {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (raw) {
-      setUsuario(JSON.parse(raw));
-    }
-    setCargando(false);
+    let activo = true;
+    httpRequest("/usuarios/sesion").then(u => { if (activo) setUsuario(u); })
+      .catch(() => { if (activo) setUsuario(null); })
+      .finally(() => { if (activo) setCargando(false); });
+    const vencida = () => setUsuario(null);
+    window.addEventListener("aurea:sesion-vencida", vencida);
+    return () => { activo = false; window.removeEventListener("aurea:sesion-vencida", vencida); };
   }, []);
-
-  const iniciarSesion = useCallback(async (credenciales) => {
-    const u = await usuariosService.autenticar(credenciales);
-    localStorage.setItem(SESSION_KEY, JSON.stringify(u));
-    setUsuario(u);
-    return u;
+  const iniciarSesion = useCallback(async datos => {
+    const u = await usuariosService.autenticar(datos); setUsuario(u); return u;
   }, []);
-
-  const registrarse = useCallback(async (datosRegistro) => {
-    const u = await usuariosService.registrarCliente(datosRegistro);
-    localStorage.setItem(SESSION_KEY, JSON.stringify(u));
-    setUsuario(u);
-    return u;
+  const registrarse = useCallback(async datos => {
+    const u = await usuariosService.registrarCliente(datos); setUsuario(u); return u;
   }, []);
-
   const cerrarSesion = useCallback(async () => {
     try {
-      await fetch("http://localhost:8080/api/usuarios/salir", { method: "POST" });
-    } catch (e) {
-      console.warn("No se pudo contactar al backend para logout.");
-    }
-    localStorage.removeItem(SESSION_KEY);
-    setUsuario(null);
+      await httpRequest("/usuarios/salir", { method: "POST" });
+      setUsuario(null);
+      window.dispatchEvent(new Event("aurea:carrito-cambio"));
+      return true;
+    } catch (error) { alert(error.message); return false; }
   }, []);
-
-  const actualizarUsuarioLocal = useCallback((datos) => {
-    setUsuario((prev) => {
-      const actualizado = { ...prev, ...datos };
-      localStorage.setItem(SESSION_KEY, JSON.stringify(actualizado));
-      return actualizado;
-    });
-  }, []);
-
-  const value = {
-    usuario,
-    estaAutenticado: !!usuario,
-    cargando,
-    iniciarSesion,
-    registrarse,
-    cerrarSesion,
-    actualizarUsuarioLocal,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  const actualizarUsuarioLocal = useCallback(datos => setUsuario(prev => ({ ...prev, ...datos })), []);
+  return <AuthContext.Provider value={{ usuario, estaAutenticado: !!usuario, cargando,
+    iniciarSesion, registrarse, cerrarSesion, actualizarUsuarioLocal }}>{children}</AuthContext.Provider>;
 }
-
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth debe usarse dentro de <AuthProvider>");
+  if (!ctx) throw new Error("useAuth debe usarse dentro de AuthProvider");
   return ctx;
 }
