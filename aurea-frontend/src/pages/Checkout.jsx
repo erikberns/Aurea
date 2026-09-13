@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import { PrimaryButton } from "../components/ui";
+import { PrimaryButton, SecondaryButton, FormField, TextInput } from "../components/ui";
 import { httpRequest } from "../api/httpClient";
 
 const fmt = new Intl.NumberFormat("es-AR");
@@ -13,6 +13,26 @@ export default function Checkout() {
   const [shippingAddress, setShippingAddress] = useState("");
   const [addressError, setAddressError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiry, setExpiry] = useState("");
+
+  const handleCardNumberChange = (e) => {
+    let val = e.target.value.replace(/\D/g, "");
+    val = val.substring(0, 16);
+    const groups = val.match(/.{1,4}/g);
+    setCardNumber(groups ? groups.join(" ") : val);
+  };
+
+  const handleExpiryChange = (e) => {
+    let val = e.target.value.replace(/\D/g, "");
+    val = val.substring(0, 4);
+    if (val.length >= 3) {
+      setExpiry(`${val.substring(0, 2)}/${val.substring(2)}`);
+    } else {
+      setExpiry(val);
+    }
+  };
 
   const navigate = useNavigate();
 
@@ -106,7 +126,11 @@ export default function Checkout() {
               </div>
               <PrimaryButton
                 disabled={!estaAutenticado || loading || cargando}
-                onClick={processPayment}
+                onClick={() => {
+                  if (!shippingAddress.trim()) { setAddressError(true); return; }
+                  setAddressError(false);
+                  setShowPaymentModal(true);
+                }}
               >
                 {loading ? "Procesando..." : (estaAutenticado ? "Confirmar pedido" : "Iniciá sesión para comprar")}
               </PrimaryButton>
@@ -129,6 +153,59 @@ export default function Checkout() {
 
       <p className="mt-6 text-sm text-on-surface-variant">La confirmación registra el pedido. El pago externo todavía no está integrado.</p>
       {carritoError && <p role="alert" className="mt-4 text-error">{carritoError}</p>}
+
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-container-high/60 backdrop-blur-sm">
+          <div className="bg-surface-container-lowest rounded-xl shadow-[0_16px_40px_-8px_rgba(30,27,24,0.12)] w-full max-w-md p-6 border border-outline-variant/30">
+            <h3 className="font-headline-sm text-headline-sm text-on-surface mb-6">
+              Detalles de Pago
+            </h3>
+            <div className="space-y-4 mb-8">
+              <FormField label="Número de Tarjeta">
+                <TextInput 
+                  placeholder="0000 0000 0000 0000" 
+                  value={cardNumber}
+                  onChange={handleCardNumberChange}
+                />
+              </FormField>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Vencimiento">
+                  <TextInput 
+                    placeholder="MM/AA" 
+                    value={expiry}
+                    onChange={handleExpiryChange}
+                  />
+                </FormField>
+                <FormField label="CVV">
+                  <TextInput placeholder="123" />
+                </FormField>
+              </div>
+              <FormField label="Nombre en la tarjeta">
+                <TextInput placeholder="Juan Pérez" />
+              </FormField>
+            </div>
+            <div className="flex justify-end gap-3">
+              <SecondaryButton
+                onClick={() => setShowPaymentModal(false)}
+                disabled={loading}
+                className="w-auto px-6 h-11"
+              >
+                Cancelar
+              </SecondaryButton>
+              <PrimaryButton
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  processPayment();
+                }}
+                disabled={loading}
+                className="w-auto px-6 h-11"
+              >
+                Pagar ${fmt.format(totalCompra)}
+              </PrimaryButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
