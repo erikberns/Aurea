@@ -36,7 +36,7 @@ public class ServicioDeUsuarios implements IUsuarios {
                 Rol.CLIENTE);
 
         Usuario guardado = usuarioRepository.save(usuario);
-        return UsuarioDTO.desde(guardado);
+        return toDTO(guardado);
     }
 
     @Override
@@ -49,13 +49,21 @@ public class ServicioDeUsuarios implements IUsuarios {
             throw new CredencialesInvalidasException();
         }
 
-        return UsuarioDTO.desde(usuario);
+        return toDTO(usuario);
     }
 
     @Override
     @Transactional(readOnly = true)
     public UsuarioDTO consultarPerfil(Long usuarioId) {
-        return UsuarioDTO.desde(buscarUsuario(usuarioId));
+        return toDTO(buscarUsuario(usuarioId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UsuarioDTO consultarPerfilPorEmail(String email) {
+        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(normalizarEmail(email))
+                .orElseThrow(UsuarioNoEncontradoException::new);
+        return toDTO(usuario);
     }
 
     @Override
@@ -63,7 +71,7 @@ public class ServicioDeUsuarios implements IUsuarios {
     public UsuarioDTO actualizarPerfil(Long usuarioId, DatosActualizacionPerfil datos) {
         Usuario usuario = buscarUsuario(usuarioId);
         usuario.actualizarPerfil(datos.nombre().trim(), datos.apellido().trim());
-        return UsuarioDTO.desde(usuario);
+        return toDTO(usuario);
     }
 
     @Override
@@ -79,7 +87,7 @@ public class ServicioDeUsuarios implements IUsuarios {
     @Override
     @Transactional(readOnly = true)
     public java.util.List<UsuarioDTO> obtenerTodos() {
-        return usuarioRepository.findAll().stream().map(UsuarioDTO::desde).toList();
+        return usuarioRepository.findAll().stream().map(this::toDTO).toList();
     }
 
     @Override
@@ -92,7 +100,12 @@ public class ServicioDeUsuarios implements IUsuarios {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Rol inválido");
         }
-        return UsuarioDTO.desde(usuario);
+        return toDTO(usuario);
+    }
+
+    private UsuarioDTO toDTO(Usuario usuario) {
+        return new UsuarioDTO(usuario.getId(), usuario.getFirstName(), usuario.getLastName(),
+                usuario.getEmail(), usuario.getRole().name());
     }
 
     private Usuario buscarUsuario(Long usuarioId) {

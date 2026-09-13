@@ -1,4 +1,4 @@
-package com.joyeriaEcommerce.AureaTPO.config;
+package com.joyeriaEcommerce.AureaTPO.usuarios.presentacion;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.web.csrf.CsrfToken;
 @RestController

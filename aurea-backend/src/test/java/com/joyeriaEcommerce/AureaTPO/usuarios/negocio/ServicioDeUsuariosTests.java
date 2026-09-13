@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.UsuarioExceptions.CredencialesInvalidasException;
 import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.UsuarioExceptions.EmailYaRegistradoException;
-import com.joyeriaEcommerce.AureaTPO.usuarios.datos.Rol;
 import com.joyeriaEcommerce.AureaTPO.usuarios.datos.Usuario;
 import com.joyeriaEcommerce.AureaTPO.usuarios.datos.UsuarioRepository;
 import org.junit.jupiter.api.Test;
@@ -33,7 +32,7 @@ class ServicioDeUsuariosTests {
                 new DatosRegistro("  Sofia ", " Perez ", " SOFIA@EXAMPLE.COM ", "ClaveSegura123"));
 
         assertThat(registrado.email()).isEqualTo("sofia@example.com");
-        assertThat(registrado.rol()).isEqualTo(Rol.CLIENTE);
+        assertThat(registrado.rol()).isEqualTo("CLIENTE");
 
         Usuario persistido = repository.findByEmailIgnoreCase("sofia@example.com").orElseThrow();
         assertThat(persistido.getContrasenaHash()).isNotEqualTo("ClaveSegura123");

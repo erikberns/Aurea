@@ -1,13 +1,10 @@
-package com.joyeriaEcommerce.AureaTPO.categorias.datos;
+package com.joyeriaEcommerce.AureaTPO.productos.datos;
 
-import com.joyeriaEcommerce.AureaTPO.descuentos.datos.Discount;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -21,16 +18,11 @@ public class Category {
     @Column(name = "description")
     private String description;
 
-    @ManyToOne
-    @JoinColumn(name = "discount_id")
-    private Discount discount;
-
     protected Category() {
     }
 
-    public Category(String description, Discount discount) {
+    public Category(String description) {
         this.description = description;
-        this.discount = discount;
     }
 
     public Long getId() {
@@ -45,11 +37,4 @@ public class Category {
         this.description = description;
     }
 
-    public Discount getDiscount() {
-        return discount;
-    }
-
-    public void setDiscount(Discount discount) {
-        this.discount = discount;
-    }
 }

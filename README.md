@@ -1,83 +1,121 @@
 # Áurea Joyas
 
-Aplicación React + Spring Boot + JPA/PostgreSQL. El navegador consume la API real: no hay autenticación ni carrito simulado en localStorage.
+Aplicación React + Spring Boot + JPA/PostgreSQL. Alcance de esta entrega: Usuarios, Carrito, Productos y Pedidos.
 
-## Ejecución local
+## Ejecución
 
-Backend: usar un JDK compatible (verificado con JDK 21) y Maven/Maven Wrapper. Configurar las variables que referencia `aurea-backend/src/main/resources/application.properties`, incluyendo conexión, usuario y contraseña de PostgreSQL y `DDL_AUTO`. Ejecutar desde `aurea-backend`:
+Backend: JDK compatible (verificado con JDK 21) y Maven. Copiar `aurea-backend/.env.example` como `aurea-backend/.env` y completar los datos reales de PostgreSQL. `DB_URL` debe comenzar con `jdbc:postgresql://`; no colocar comillas alrededor de los valores, porque Spring importa el archivo como propiedades Java. `DDL_AUTO=validate` comprueba el esquema; `update` permite crearlo o actualizarlo en desarrollo. El lanzador de VS Code y Maven deben ejecutarse desde `aurea-backend` y usar ese mismo `.env`. Ejecutar desde `aurea-backend`:
 
 ```powershell
 mvn spring-boot:run
 ```
 
-Frontend: copiar `.env.example` a `.env`, configurar `VITE_API_BASE_URL=http://localhost:8080/api` y ejecutar desde `aurea-frontend`:
+Frontend: configurar `VITE_API_BASE_URL=http://localhost:8080/api` en su `.env`. Ejecutar desde `aurea-frontend`:
 
 ```powershell
 npm install
 npm run dev
 ```
 
-Usar el mismo hostname en ambos lados (por ejemplo localhost) y el origen autorizado por `CORS_ALLOWED_ORIGIN`. La sesión viaja en una cookie HttpOnly `JSESSIONID`. El cliente obtiene el token con `GET /api/csrf` antes de cada mutación. No se utiliza JWT.
+Usar el mismo hostname en ambos lados y el origen autorizado por `CORS_ALLOWED_ORIGIN` (por defecto http://localhost:5173).
 
-## Stateful y stateless para la primera entrega
+## Cuatro componentes, tres capas
 
-**Stateful:** `carrito/negocio/ServicioDeCarrito` implementa `ICarrito` y usa `@Service` + `@SessionScope`. Spring crea una instancia por sesión HTTP cuando se consulta por primera vez. Su mapa conserva identificadores y cantidades entre solicitudes. Los métodos sincronizados evitan modificaciones simultáneas sobre la misma instancia. Cada consulta obtiene precios actuales del servidor. Las sesiones diferentes tienen selecciones independientes.
+```text
+com/joyeriaEcommerce/AureaTPO/
+  usuarios/
+    presentacion/  UsuarioController, CsrfController y requests
+    negocio/       IUsuarios, ServicioDeUsuarios, UsuarioDetailsService y DTO
+    datos/         Usuario, Rol y UsuarioRepository
+  carrito/
+    presentacion/  CarritoController
+    negocio/       ICarrito, ServicioDeCarrito y CarritoDTO
+    datos/         ICarritoRepository y CarritoRepository (memoria)
+  productos/
+    presentacion/  ProductController y requests
+    negocio/       IProductos, ProductService, InventarioObserver y DTO
+    datos/         Product, ProductDAO, ProductDAOImpl, Category y CategoryRepository
+  ordenes/
+    presentacion/  OrderController y requests
+    negocio/       IPedidos, ICheckout, ICalculoEnvio, implementaciones, DTO, eventos/ y strategy/
+    datos/         Order, OrderItem, OrderStatus y OrderRepository
+  infraestructura/
+    configuracion/ Configuración de Spring Security
+    presentacion/  Manejo transversal de errores HTTP
+    datos/         Inicialización de datos y compatibilidad del esquema
+```
 
-`@PostConstruct` registra la creación y `@PreDestroy` vacía el mapa y registra la destrucción. El logout invalida la sesión y destruye el bean; el vencimiento de sesión también dispara su destrucción cuando el contenedor elimina la sesión. Recargar la página conserva el carrito mientras la cookie y la sesión sigan vigentes. Varias pestañas del mismo navegador comparten sesión y carrito. El estado es temporal: no se conserva al reiniciar el backend ni se replica entre instancias.
+Pedidos se denomina `ordenes` en el código. Categorías es parte de Productos y permite filtrar el catálogo. Infraestructura contiene soporte técnico compartido, no un quinto componente funcional.
 
-El carrito permite selección como invitado y la conserva al iniciar sesión; el servidor cambia el identificador de sesión. Si se autentica una cuenta distinta desde una sesión ya autenticada, se invalida la anterior. Comprar exige autenticación. Agregar no reserva inventario.
+La dirección entre capas es presentación → negocio → datos. Los controladores reciben interfaces de negocio por constructor y consumen DTO, sin acceder directamente a entidades o repositorios. El negocio accede a su propia capa de datos mediante interfaces. Para colaborar con otro componente utiliza sus contratos públicos de negocio; no importa sus servicios concretos, entidades ni repositorios. Los DTO no exponen entidades JPA y su conversión se realiza dentro del servicio propietario. El frontend React pertenece a presentación; sus clientes HTTP no reemplazan el negocio ni la persistencia del servidor.
 
-**Stateless:** `productos/negocio/ProductService` no conserva selección, usuario ni datos de solicitudes anteriores en sus atributos. Spring lo administra como singleton y le inyecta sus repositorios. Singleton describe el alcance de instancia; stateless describe su comportamiento. Tiene callbacks de inicialización y destrucción. `CostoEnvio` es otro ejemplo de cálculo sin estado conversacional.
+| Componente | Contratos de negocio |
+|---|---|
+| Usuarios | IUsuarios; UserDetailsService para la integración con Spring Security |
+| Carrito | ICarrito |
+| Productos | IProductos |
+| Pedidos | IPedidos, ICheckout e ICalculoEnvio |
 
-## Capas y patrones
+Pedidos conserva los identificadores de usuario y producto y obtiene sus DTO mediante IUsuarios e IProductos. Las columnas existentes `user_id` y `product_id` mantienen sus nombres. OrderItem conserva el precio registrado al comprar. Los eventos de negocio son contratos inmutables: OrderConfirmedEvent permite comunicar la confirmación sin conocer al observador. La aplicación continúa siendo un único despliegue Spring Boot; la separación es lógica, por componentes y capas. La inicialización técnica de la base queda en infraestructura.
 
-- Presentación: React y controladores REST, incluyendo `CarritoController`.
-- Negocio: `ServicioDeCarrito`, `ProductService`, `OrderService`, `CheckoutFacade`.
-- Datos: `ProductDAO`/`ProductDAOImpl`, repositorios JPA y entidades. El carrito utiliza el acceso existente a Productos; su selección temporal vive en el bean de sesión, sin una tabla artificial de carrito.
-- DAO: acceso a productos encapsulado tras `ProductDAO`.
-- Facade: `CheckoutFacade` coordina la compra.
-- Strategy: `CostoEnvio` selecciona envío gratuito o estándar mediante `ShippingStrategy`.
-- Observer: confirmación de pedidos publica un evento. El stock participa en la transacción; métricas y notificación simulada se procesan después del commit. Hay un único listener de notificaciones.
+## Stateful y stateless
 
-## API del carrito
+**Stateful:** `carrito/negocio/ServicioDeCarrito` usa `@Service` y `@SessionScope`. Spring le inyecta un ICarritoRepository cuya implementación tiene alcance prototype: cada instancia del servicio recibe un repositorio distinto, que almacena identificadores y cantidades en memoria, sin tabla SQL. El servicio conserva ese repositorio durante su sesión HTTP. Su callback de destrucción vacía la selección; Spring no ejecuta automáticamente la destrucción de los beans prototype.
+
+El servicio aplica las reglas, consulta precios y stock en Productos y sincroniza las operaciones sobre su selección. La capa de datos encapsula guardar, consultar, quitar y vaciar. Al consultar devuelve una copia del mapa para evitar modificaciones externas.
+
+`@PostConstruct` registra la creación. `@PreDestroy` vacía la selección y registra la destrucción. Cerrar sesión invalida el carrito. Una sesión que vence se elimina cuando el contenedor realiza su limpieza. No hay persistencia frente a un reinicio ni replicación entre servidores. Agregar no reserva stock.
+
+El invitado puede seleccionar productos y conservarlos al autenticarse; se renueva el identificador de sesión. Cambiar a otra cuenta invalida la sesión anterior y no transfiere su carrito. Varias pestañas de la misma sesión comparten la selección.
+
+**Stateless:** `productos/negocio/ProductService` atiende operaciones sin conservar usuario ni selección entre solicitudes. Es un singleton administrado por Spring, con callbacks de inicialización y destrucción. Singleton describe el alcance; stateless describe la ausencia de estado conversacional.
+
+## Compra y patrones
+
+El catálogo, la portada y el detalle utilizan la API real de productos. Todos los importes se calculan con el precio base del servidor y el costo de envío. El modelo y la API actuales no ofrecen descuentos.
+
+`POST /api/carrito/checkout` toma la dirección y la selección de sesión. `CheckoutFacade.purchase` crea y confirma el pedido dentro de una transacción. Productos recibe el evento de confirmación y descuenta el stock en esa transacción. Si falla, se revierte el pedido y el carrito conserva su contenido; después del commit se vacía.
+
+- **DAO:** ProductDAO y ProductDAOImpl encapsulan el acceso a productos.
+- **Facade:** CheckoutFacade implementa ICheckout y coordina la compra mediante los contratos de Usuarios, Productos y Pedidos, además de su propio repositorio de pedidos.
+- **Strategy:** CostoEnvio implementa ICalculoEnvio y recibe implementaciones de ShippingStrategy: envío gratuito desde 60.000 o estándar por 4.500.
+- **Observer:** InventarioObserver recibe OrderConfirmedEvent y solicita el descuento de stock a IProductos. La entrega del evento es síncrona y participa en la transacción de confirmación.
+
+No hay listener de notificaciones ni métricas de checkout. La confirmación no procesa un cobro externo.
+
+## Seguridad y API
+
+Spring Security autentica con sesión HTTP y cookie HttpOnly `JSESSIONID`; no se utiliza JWT. El cliente obtiene un token en `GET /api/csrf` antes de cada mutación y envía las credenciales de sesión. Las operaciones administrativas requieren ADMIN mediante `@PreAuthorize`.
 
 | Método | Ruta | Operación |
 |---|---|---|
-| GET | `/api/carrito` | Consultar selección y totales calculados por el servidor |
-| POST | `/api/carrito/items` | Agregar `{ "productoId": 1, "cantidad": 1 }` |
-| DELETE | `/api/carrito/items/{id}` | Quitar un producto |
-| DELETE | `/api/carrito` | Vaciar selección |
-| POST | `/api/carrito/checkout` | Comprar con `{ "direccion": "Calle 123" }`; requiere sesión autenticada |
-| GET | `/api/usuarios/sesion` | Perfil autenticado o respuesta vacía para invitado |
-| POST | `/api/usuarios/salir` | Invalidar sesión y destruir carrito |
+| GET | /api/carrito | Consultar selección y totales |
+| POST | /api/carrito/items | Agregar productoId y cantidad |
+| DELETE | /api/carrito/items/{id} | Quitar producto |
+| DELETE | /api/carrito | Vaciar selección |
+| POST | /api/carrito/checkout | Comprar con direccion; exige autenticación |
+| GET | /api/usuarios/sesion | Consultar perfil de sesión |
+| POST | /api/usuarios/salir | Invalidar sesión |
+| GET | /api/ordenes/mis-pedidos | Consultar historial propio |
 
-Todas las mutaciones requieren CSRF. `POST /api/carrito/checkout` usa los ítems del servidor. Crea y confirma la orden dentro de una transacción. Solo después de que esa operación retorna con commit se vacía la selección. Ante stock insuficiente o error de persistencia, se conserva el carrito. La confirmación no realiza un cobro externo.
+## Demostración y pruebas
 
-## Guion de demostración
-
-1. Iniciar backend y frontend; abrir un navegador normal (A) y uno incógnito (B).
-2. En A agregar dos unidades de una joya. Recargar: permanecen. Observar el log de creación del carrito.
-3. En B consultar la bolsa: está vacía. Agregar otro producto: A permanece sin cambios. Cada sesión registra una instancia de carrito diferente.
-4. En A registrarse o iniciar sesión. La selección de invitado se conserva; consultar la cuenta acredita la sesión real.
-5. Confirmar un pedido: mostrar el total devuelto, el historial y el stock descontado. La bolsa queda vacía.
-6. Volver a agregar un producto y cerrar sesión: observar el log `Carrito ... destruido`. Al consultar una nueva bolsa, está vacía. B conserva su carrito.
-7. Mostrar en código `@SessionScope`, el mapa y ambos callbacks. Comparar con `ProductService`: dependencias compartidas, sin estado conversacional.
-8. Mostrar una operación administrativa: un cliente recibe 403; un administrador puede ejecutarla. Es posible demostrar los endpoints administrativos con un cliente HTTP; no existe un panel administrativo completo.
-
-Para mostrar vencimiento, configurar temporalmente `server.servlet.session.timeout` y esperar la limpieza de sesiones del servidor. El timeout se mide desde la última actividad; la destrucción por expiración puede demorarse hasta la siguiente limpieza del contenedor.
-
-## Validación
+1. Abrir una ventana normal y otra de incógnito: agregar en una y comprobar que la otra tiene un carrito distinto.
+2. Recargar y comprobar que la selección persiste; mostrar el callback de creación.
+3. Iniciar sesión como invitado con artículos seleccionados y comprobar que se conservan.
+4. Comprar y mostrar el pedido, el stock descontado y la bolsa vacía.
+5. Agregar nuevamente y cerrar sesión: mostrar destrucción y nueva selección vacía.
+6. Contrastar ServicioDeCarrito con ProductService y explicar las tres capas de cada componente.
+7. Demostrar una operación administrativa rechazada a un cliente y permitida a ADMIN mediante un cliente HTTP.
 
 ```powershell
-# Backend: pruebas con H2, sin tocar PostgreSQL
-mvn test
-# Frontend
+# Desde aurea-backend
+mvn clean test
+# Desde aurea-frontend
 npm run build
 npm run lint
 ```
 
-`CarritoHttpTests` cubre aislamiento de sesiones, persistencia entre peticiones, destrucción por logout, token CSRF real, conservación del carrito invitado al autenticar, compra, stock insuficiente, cantidades inválidas y autorización de administrador. Las pruebas HTTP usan el contexto y los filtros reales de Spring con MockMvc.
+Las 21 pruebas de backend usan H2 y MockMvc con los filtros de Spring Security. Cubren sesiones, compra, stock, validaciones y autorización, incluida la prohibición de confirmar pedidos ajenos y la reversión de pedido y stock si falla el observador. Las pruebas de arquitectura comprueban las tres capas de los cuatro componentes, prohíben referencias a datos o implementaciones de otros componentes, verifican la inyección mediante interfaces y revisan que las firmas de contratos y DTO no filtren entidades. Esto no sustituye el ensayo de navegador con PostgreSQL.
 
-## Alcance pendiente
-
-Pagos y correos externos, reservas de inventario con vencimiento, SOAP, broker, colas y tópicos quedan para siguientes etapas. No se presentan los mensajes de consola como correos enviados. `CheckoutMetricsState` es una métrica global, no el ejemplo stateful principal. Los pedidos y productos siguen compartiendo el backend y la base de datos.
+La eliminación de descuentos retira sus entidades y relaciones del código. No se ejecutaron borrados sobre PostgreSQL; en una base existente pueden permanecer tablas o columnas antiguas que Hibernate update no elimina. Los pedidos anteriores conservan sus importes registrados.

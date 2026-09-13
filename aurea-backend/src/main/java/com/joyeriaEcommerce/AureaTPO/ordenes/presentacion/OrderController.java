@@ -1,23 +1,22 @@
 package com.joyeriaEcommerce.AureaTPO.ordenes.presentacion;
 
-import com.joyeriaEcommerce.AureaTPO.ordenes.datos.Order;
-import com.joyeriaEcommerce.AureaTPO.ordenes.negocio.OrderService;
+import com.joyeriaEcommerce.AureaTPO.ordenes.negocio.IPedidos;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import com.joyeriaEcommerce.AureaTPO.ordenes.negocio.OrderDTO;
-import com.joyeriaEcommerce.AureaTPO.ordenes.negocio.CheckoutFacade;
+import com.joyeriaEcommerce.AureaTPO.ordenes.negocio.ICheckout;
 
 @RestController
 @RequestMapping("/api/ordenes")
 public class OrderController {
 
-    private final OrderService orderService;
-    private final CheckoutFacade checkoutFacade;
+    private final IPedidos orderService;
+    private final ICheckout checkoutFacade;
 
-    public OrderController(OrderService orderService, CheckoutFacade checkoutFacade) {
+    public OrderController(IPedidos orderService, ICheckout checkoutFacade) {
         this.orderService = orderService;
         this.checkoutFacade = checkoutFacade;
     }

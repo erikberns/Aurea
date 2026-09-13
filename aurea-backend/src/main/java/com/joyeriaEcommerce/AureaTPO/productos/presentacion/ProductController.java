@@ -1,8 +1,7 @@
 package com.joyeriaEcommerce.AureaTPO.productos.presentacion;
 
-import com.joyeriaEcommerce.AureaTPO.productos.datos.Product;
 import com.joyeriaEcommerce.AureaTPO.productos.negocio.ProductDTO;
-import com.joyeriaEcommerce.AureaTPO.productos.negocio.ProductService;
+import com.joyeriaEcommerce.AureaTPO.productos.negocio.IProductos;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -11,9 +10,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/productos")
 public class ProductController {
 
-    private final ProductService productService;
+    private final IProductos productService;
 
-    public ProductController(ProductService productService) {
+    public ProductController(IProductos productService) {
         this.productService = productService;
     }
 

@@ -1,7 +1,5 @@
 package com.joyeriaEcommerce.AureaTPO.ordenes.datos;
 
-import com.joyeriaEcommerce.AureaTPO.productos.datos.Product;
-import com.joyeriaEcommerce.AureaTPO.usuarios.datos.Usuario;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -9,8 +7,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
@@ -42,19 +38,18 @@ public class Order {
     @Column(name = "total")
     private Double total;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private Usuario user;
+    @Column(name = "user_id")
+    private Long userId;
 
     protected Order() {
     }
 
-    public Order(String shippingAddress, LocalDate orderDate, OrderStatus status, Double total, Usuario user) {
+    public Order(String shippingAddress, LocalDate orderDate, OrderStatus status, Double total, Long userId) {
         this.shippingAddress = shippingAddress;
         this.orderDate = orderDate;
         this.status = status;
         this.total = total;
-        this.user = user;
+        this.userId = userId;
     }
 
     public Long getId() {
@@ -106,11 +101,11 @@ public class Order {
         this.items = items;
     }
 
-    public Usuario getUser() {
-        return user;
+    public Long getUserId() {
+        return userId;
     }
 
-    public void setUser(Usuario user) {
-        this.user = user;
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 }

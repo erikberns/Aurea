@@ -8,6 +8,8 @@ public interface IUsuarios {
 
     UsuarioDTO consultarPerfil(Long usuarioId);
 
+    UsuarioDTO consultarPerfilPorEmail(String email);
+
     UsuarioDTO actualizarPerfil(Long usuarioId, DatosActualizacionPerfil datos);
 
     void cambiarContrasena(Long usuarioId, DatosCambioContrasena datos);

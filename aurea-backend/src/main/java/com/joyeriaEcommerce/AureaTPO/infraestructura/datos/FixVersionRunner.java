@@ -1,4 +1,4 @@
-package com.joyeriaEcommerce.AureaTPO;
+package com.joyeriaEcommerce.AureaTPO.infraestructura.datos;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;

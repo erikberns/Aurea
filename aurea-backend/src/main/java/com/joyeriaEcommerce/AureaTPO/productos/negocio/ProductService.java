@@ -1,21 +1,19 @@
 package com.joyeriaEcommerce.AureaTPO.productos.negocio;
 
-import com.joyeriaEcommerce.AureaTPO.ordenes.eventos.OrderConfirmedEvent;
 import com.joyeriaEcommerce.AureaTPO.productos.datos.Product;
 import com.joyeriaEcommerce.AureaTPO.productos.datos.ProductDAO;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
 
 @Service
-public class ProductService {
+public class ProductService implements IProductos {
 
     private final ProductDAO productDAO;
-    private final com.joyeriaEcommerce.AureaTPO.categorias.datos.CategoryRepository categoryRepository;
+    private final com.joyeriaEcommerce.AureaTPO.productos.datos.CategoryRepository categoryRepository;
 
-    public ProductService(ProductDAO productDAO, com.joyeriaEcommerce.AureaTPO.categorias.datos.CategoryRepository categoryRepository) {
+    public ProductService(ProductDAO productDAO, com.joyeriaEcommerce.AureaTPO.productos.datos.CategoryRepository categoryRepository) {
         this.productDAO = productDAO;
         this.categoryRepository = categoryRepository;
     }
@@ -28,27 +26,27 @@ public class ProductService {
 
     @Transactional(readOnly=true)
     public java.util.List<ProductDTO> getAllProducts() {
-        return productDAO.findAll().stream().map(ProductDTO::desde).toList();
+        return productDAO.findAll().stream().map(this::toDTO).toList();
     }
 
     @Transactional(readOnly=true)
     public ProductDTO getProductById(Long id) {
         Product product = productDAO.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
-        return ProductDTO.desde(product);
+        return toDTO(product);
     }
 
     @Transactional
     public ProductDTO createProduct(String name, String description, Double price, Integer stock, Long categoryId, String imageUrl) {
         if(name==null||name.isBlank()) throw new IllegalArgumentException("Nombre obligatorio");
         validarPrecio(price); validarStock(stock);
-        com.joyeriaEcommerce.AureaTPO.categorias.datos.Category category = null;
+        com.joyeriaEcommerce.AureaTPO.productos.datos.Category category = null;
         if (categoryId != null) {
             category = categoryRepository.findById(categoryId)
                     .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
         }
-        Product newProduct = new Product(true, description, name, price, imageUrl, stock, category, null);
-        return ProductDTO.desde(productDAO.save(newProduct));
+        Product newProduct = new Product(true, description, name, price, imageUrl, stock, category);
+        return toDTO(productDAO.save(newProduct));
     }
 
     @Transactional
@@ -57,7 +55,7 @@ public class ProductService {
         Product product = productDAO.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
         product.setPrice(newPrice);
-        return ProductDTO.desde(productDAO.save(product));
+        return toDTO(productDAO.save(product));
     }
 
     @Transactional
@@ -73,7 +71,7 @@ public class ProductService {
         if (imageUrl != null && !imageUrl.trim().isEmpty()) {
             product.setImageUrl(imageUrl);
         }
-        return ProductDTO.desde(productDAO.save(product));
+        return toDTO(productDAO.save(product));
     }
 
     @Transactional
@@ -90,31 +88,36 @@ public class ProductService {
         Product product = productDAO.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
         product.setStock(newStock);
-        return ProductDTO.desde(productDAO.save(product));
+        return toDTO(productDAO.save(product));
     }
 
-    @EventListener
+    @Override
     @Transactional
-    public void onOrderConfirmed(OrderConfirmedEvent event) {
-        System.out.println("Evento recibido en Inventario. Procesando descuento de stock para orden " + event.orderId());
-        
-        if (event.productQuantities() != null) {
-            for (java.util.Map.Entry<Long, Integer> entry : event.productQuantities().entrySet()) {
-                Long productId = entry.getKey();
-                Integer quantity = entry.getValue();
-                
-                Product product = productDAO.findById(productId)
-                        .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + productId));
-                
-                if (product.getStock() < quantity) {
-                    throw new IllegalStateException("Stock insuficiente para el producto " + product.getId());
-                }
-                
-                product.setStock(product.getStock() - quantity);
-                productDAO.save(product);
-                System.out.println("Stock actualizado para producto " + productId + ". Nuevo stock: " + product.getStock());
-            }
+    public void descontarStock(java.util.Map<Long, Integer> cantidades) {
+        if (cantidades == null || cantidades.isEmpty()) {
+            throw new IllegalArgumentException("Productos obligatorios");
         }
+        for (var entry : cantidades.entrySet()) {
+            Integer cantidad = entry.getValue();
+            if (entry.getKey() == null || cantidad == null || cantidad <= 0) {
+                throw new IllegalArgumentException("Cantidad inválida");
+            }
+            Product product = productDAO.findById(entry.getKey())
+                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+            if (!Boolean.TRUE.equals(product.getActive()) || product.getStock() < cantidad) {
+                throw new IllegalStateException("Stock insuficiente o producto inactivo: " + product.getId());
+            }
+            product.setStock(product.getStock() - cantidad);
+            productDAO.save(product);
+        }
+    }
+
+    private ProductDTO toDTO(Product product) {
+        var category = product.getCategory();
+        CategoryDTO categoria = category == null ? null
+                : new CategoryDTO(category.getId(), category.getDescription());
+        return new ProductDTO(product.getId(), product.getActive(), product.getDescription(),
+                product.getName(), product.getPrice(), product.getImageUrl(), product.getStock(), categoria);
     }
 
     private void validarPrecio(Double p){if(p==null||!Double.isFinite(p)||p<0) throw new IllegalArgumentException("Precio invalido");}

@@ -1,7 +1,6 @@
 package com.joyeriaEcommerce.AureaTPO.ordenes.datos;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.joyeriaEcommerce.AureaTPO.productos.datos.Product;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -24,9 +23,8 @@ public class OrderItem {
     @JsonIgnore
     private Order order;
 
-    @ManyToOne
-    @JoinColumn(name = "product_id")
-    private Product product;
+    @Column(name = "product_id")
+    private Long productId;
 
     @Column(name = "quantity")
     private Integer quantity;
@@ -36,9 +34,9 @@ public class OrderItem {
 
     protected OrderItem() {}
 
-    public OrderItem(Order order, Product product, Integer quantity, Double price) {
+    public OrderItem(Order order, Long productId, Integer quantity, Double price) {
         this.order = order;
-        this.product = product;
+        this.productId = productId;
         this.quantity = quantity;
         this.price = price;
     }
@@ -55,12 +53,12 @@ public class OrderItem {
         this.order = order;
     }
 
-    public Product getProduct() {
-        return product;
+    public Long getProductId() {
+        return productId;
     }
 
-    public void setProduct(Product product) {
-        this.product = product;
+    public void setProductId(Long productId) {
+        this.productId = productId;
     }
 
     public Integer getQuantity() {
