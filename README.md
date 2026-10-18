@@ -4,7 +4,7 @@ Aplicación React + Spring Boot + JPA/PostgreSQL. Alcance de esta entrega: Usuar
 
 ## Ejecución
 
-Backend: JDK compatible (verificado con JDK 21) y Maven. Copiar `aurea-backend/.env.example` como `aurea-backend/.env` y completar los datos reales de PostgreSQL. `DB_URL` debe comenzar con `jdbc:postgresql://`; no colocar comillas alrededor de los valores, porque Spring importa el archivo como propiedades Java. `DDL_AUTO=validate` comprueba el esquema; `update` permite crearlo o actualizarlo en desarrollo. El lanzador de VS Code y Maven deben ejecutarse desde `aurea-backend` y usar ese mismo `.env`. Ejecutar desde `aurea-backend`:
+Backend: JDK 25 (LTS) y Maven. Copiar `aurea-backend/.env.example` como `aurea-backend/.env` y completar los datos reales de PostgreSQL. `DB_URL` debe comenzar con `jdbc:postgresql://`; no colocar comillas alrededor de los valores, porque Spring importa el archivo como propiedades Java. `DDL_AUTO=validate` comprueba el esquema; `update` permite crearlo o actualizarlo en desarrollo. El lanzador de VS Code y Maven deben ejecutarse desde `aurea-backend` y usar ese mismo `.env`. Ejecutar desde `aurea-backend`:
 
 ```powershell
 mvn spring-boot:run
