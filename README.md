@@ -4,7 +4,7 @@ Aplicación React + Spring Boot + JPA/PostgreSQL. Alcance de esta entrega: Usuar
 
 ## Ejecución
 
-Backend: JDK 25 (LTS) y Maven. Copiar `aurea-backend/.env.example` como `aurea-backend/.env` y completar los datos reales de PostgreSQL. `DB_URL` debe comenzar con `jdbc:postgresql://`; no colocar comillas alrededor de los valores, porque Spring importa el archivo como propiedades Java. `DDL_AUTO=validate` comprueba el esquema; `update` permite crearlo o actualizarlo en desarrollo. El lanzador de VS Code y Maven deben ejecutarse desde `aurea-backend` y usar ese mismo `.env`. Ejecutar desde `aurea-backend`:
+Backend: JDK 25 (LTS), Maven y Docker Compose. Copiar `aurea-backend/.env.example` como `aurea-backend/.env` y completar los datos reales de PostgreSQL. `DB_URL` debe comenzar con `jdbc:postgresql://`; no colocar comillas alrededor de los valores, porque Spring importa el archivo como propiedades Java. `DDL_AUTO=validate` comprueba el esquema; `update` permite crearlo o actualizarlo en desarrollo. El lanzador de VS Code y Maven deben ejecutarse desde `aurea-backend` y usar ese mismo `.env`. Iniciar RabbitMQ desde `aurea-backend` con `docker compose up -d rabbitmq`, y luego:
 
 ```powershell
 mvn spring-boot:run
@@ -80,6 +80,7 @@ El catálogo, la portada y el detalle utilizan la API real de productos. Todos l
 - **Facade:** CheckoutFacade implementa ICheckout y coordina la compra mediante los contratos de Usuarios, Productos y Pedidos, además de su propio repositorio de pedidos.
 - **Strategy:** CostoEnvio implementa ICalculoEnvio y recibe implementaciones de ShippingStrategy: envío gratuito desde 60.000 o estándar por 4.500.
 - **Observer:** InventarioObserver recibe OrderConfirmedEvent y solicita el descuento de stock a IProductos. La entrega del evento es síncrona y participa en la transacción de confirmación.
+- **Mensajería asíncrona:** tras el commit de confirmación, OrderProcessingPublisher publica el identificador por RabbitMQ. OrderProcessingListener consume la cola durable `aurea.orders.confirmed` y completa la orden mediante IPedidos. El cambio es idempotente; la cola y el exchange se declaran automáticamente.
 
 No hay listener de notificaciones ni métricas de checkout. La confirmación no procesa un cobro externo.
 
