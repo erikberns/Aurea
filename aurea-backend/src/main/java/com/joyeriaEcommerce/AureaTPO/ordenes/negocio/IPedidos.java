@@ -6,6 +6,7 @@ import java.util.List;
 public interface IPedidos {
     OrderDTO consultarPedido(Long id);
     OrderDTO confirmOrder(Long id, String username);
+    void completeOrder(Long id);
     OrderDTO approveReturn(Long id);
     List<OrderDTO> getOrdersByUser(String username);
     List<OrderDTO> getAllOrders();

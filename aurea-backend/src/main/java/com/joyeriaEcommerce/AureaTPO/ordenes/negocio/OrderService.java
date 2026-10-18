@@ -59,6 +59,16 @@ public class OrderService implements IPedidos {
 
     @Override
     @Transactional
+    public void completeOrder(Long orderId) {
+        Order order = buscar(orderId);
+        if (order.getStatus() == OrderStatus.CONFIRMED) {
+            order.setStatus(OrderStatus.COMPLETED);
+            orderRepository.save(order);
+        }
+    }
+
+    @Override
+    @Transactional
     public OrderDTO approveReturn(Long id) {
         Order order = buscar(id);
         order.setStatus(OrderStatus.CANCELLED);
