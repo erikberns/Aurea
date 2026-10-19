@@ -1,13 +1,15 @@
+import { Link } from "react-router-dom";
+import Logo from "./Logo";
+
 export default function Footer() {
   return (
     <footer className="bg-surface-container border-t border-outline-variant/30">
       <div className="w-full px-6 md:px-12 py-16 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
           <div className="lg:col-span-2">
-            <div className="font-headline-md text-headline-md tracking-tight text-on-surface mb-3 flex items-center gap-2">
-              <span className="text-primary-container font-serif italic text-3xl font-normal">Á</span>
-              <span className="font-semibold tracking-normal">Áurea Joyas</span>
-            </div>
+            <Link to="/" className="inline-block mb-4 group" aria-label="Áurea Joyas - Inicio">
+              <Logo variant="dark" className="h-8 md:h-9 w-auto" />
+            </Link>
             <p className="font-body-md text-body-md text-on-surface-variant max-w-sm mb-6 leading-relaxed">
               Joyería contemporánea en Plata 925 certificada y Baño de Oro 18k Vermeil. Diseñada y
               creada en Buenos Aires con pasión por los detalles y respeto por los oficios
