@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import Logo from "./Logo";
 
 const NAV_LINKS = [
   { label: "Novedades", to: "/" },
@@ -9,7 +10,6 @@ const NAV_LINKS = [
   { label: "Collares", to: "/catalogo?categoria=Collares %26 Medallas" },
   { label: "Pulseras", to: "/catalogo?categoria=Pulseras %26 Eslabones" },
   { label: "Pendientes", to: "/catalogo?categoria=Pendientes %26 Huggies" },
-  { label: "Regalos", to: "/catalogo" },
 ];
 
 export default function Header() {
@@ -45,10 +45,10 @@ export default function Header() {
         <div className="w-full px-6 md:px-12 max-w-7xl mx-auto flex items-center justify-between h-20">
           <Link
             to="/"
-            className="font-headline-md text-headline-md tracking-tight text-on-surface flex items-center gap-2 active:scale-[0.99] transition-transform duration-150"
+            className="flex items-center gap-2 group shrink-0 active:scale-[0.99] transition-transform duration-150 py-1 mr-8 lg:mr-14"
+            aria-label="Áurea Joyas - Inicio"
           >
-            <span className="text-primary-container font-serif italic text-3xl font-normal">Á</span>
-            <span className="font-semibold tracking-normal">Áurea Joyas</span>
+            <Logo variant="dark" className="h-8 md:h-9 w-auto" />
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
