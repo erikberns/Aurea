@@ -37,11 +37,11 @@ com/joyeriaEcommerce/AureaTPO/
     datos/         Product, ProductDAO, ProductDAOImpl, Category y CategoryRepository
   ordenes/
     presentacion/  OrderController y requests
-    negocio/       IPedidos, ICheckout, ICalculoEnvio, implementaciones, DTO, eventos/ y strategy/
-    datos/         Order, OrderItem, OrderStatus y OrderRepository
+    negocio/       IPedidos, ICheckout, ICalculoEnvio, implementaciones, DTO, eventos/, mensajeria/ y strategy/
+    datos/         Order, OrderItem, OrderStatus, OrderState (State Pattern), TransicionEstadoInvalidaException y OrderRepository
   infraestructura/
-    configuracion/ Configuración de Spring Security
-    presentacion/  Manejo transversal de errores HTTP
+    configuracion/ Configuración de Spring Security, JWT (IJwtService, JwtService, JwtAuthenticationFilter) y RabbitMQ
+    presentacion/  Manejo transversal de errores HTTP (ApiExceptionHandler)
     datos/         Inicialización de datos y compatibilidad del esquema
 ```
 
@@ -76,17 +76,20 @@ El catálogo, la portada y el detalle utilizan la API real de productos. Todos l
 
 `POST /api/carrito/checkout` toma la dirección y la selección de sesión. `CheckoutFacade.purchase` crea y confirma el pedido dentro de una transacción. Productos recibe el evento de confirmación y descuenta el stock en esa transacción. Si falla, se revierte el pedido y el carrito conserva su contenido; después del commit se vacía.
 
-- **DAO:** ProductDAO y ProductDAOImpl encapsulan el acceso a productos.
-- **Facade:** CheckoutFacade implementa ICheckout y coordina la compra mediante los contratos de Usuarios, Productos y Pedidos, además de su propio repositorio de pedidos.
-- **Strategy:** CostoEnvio implementa ICalculoEnvio y recibe implementaciones de ShippingStrategy: envío gratuito desde 60.000 o estándar por 4.500.
-- **Observer:** InventarioObserver recibe OrderConfirmedEvent y solicita el descuento de stock a IProductos. La entrega del evento es síncrona y participa en la transacción de confirmación.
-- **Mensajería asíncrona:** tras el commit de confirmación, OrderProcessingPublisher publica el identificador por RabbitMQ. OrderProcessingListener consume la cola durable `aurea.orders.confirmed` y completa la orden mediante IPedidos. El cambio es idempotente; la cola y el exchange se declaran automáticamente.
+- **State (con ADR-001):** `Order` delega su ciclo de vida (`PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`) a objetos polimórficos `OrderState` (`PendingState`, `ConfirmedState`, `CompletedState`, `CancelledState`). Cualquier transición inválida lanza `TransicionEstadoInvalidaException`, traducida a **HTTP 409 Conflict** por `ApiExceptionHandler`.
+- **Strategy (con ADR-002):** `CostoEnvio` implementa `ICalculoEnvio` y selecciona polimórficamente mediante `ShippingStrategy.soporta(double cartTotal)` (cumpliendo OCP): envío gratuito desde 60.000 o estándar por 4.500.
+- **Facade (con ADR-003):** `CheckoutFacade` implementa `ICheckout` y coordina la compra mediante los contratos de Usuarios, Productos y Pedidos, además de su propio repositorio de pedidos.
+- **Observer (con ADR-004):** `InventarioObserver` recibe `OrderConfirmedEvent` y solicita el descuento de stock a `IProductos`. La entrega del evento es síncrona y participa en la transacción de confirmación.
+- **DAO (con ADR-005):** `ProductDAO` y `ProductDAOImpl` encapsulan el acceso a productos.
+- **Mensajería asíncrona:** tras el commit de confirmación (`afterCommit`), `OrderProcessingPublisher` publica el evento en RabbitMQ. `OrderProcessingListener` consume la cola durable `aurea.orders.confirmed` y completa la orden mediante `IPedidos` (`order.completar()`). El consumidor es idempotente ante re-entregas; la cola y el exchange se declaran automáticamente.
+
+Los Architecture Decision Records (ADRs) de cada patrón se encuentran en `docs/adr/` (`ADR-001` a `ADR-005`), y la matriz de criterios de aceptación de seguridad verificables en `docs/seguridad-criterios-aceptacion.md`.
 
 No hay listener de notificaciones ni métricas de checkout. La confirmación no procesa un cobro externo.
 
 ## Seguridad y API
 
-Spring Security autentica con sesión HTTP y cookie HttpOnly `JSESSIONID`; no se utiliza JWT. El cliente obtiene un token en `GET /api/csrf` antes de cada mutación y envía las credenciales de sesión. Las operaciones administrativas requieren ADMIN mediante `@PreAuthorize`.
+Spring Security soporta autenticación mediante **JWT (RFC 7519 HS256)** con expiración acotada a 15 minutos (`Authorization: Bearer <token>` y cookie `AUREA_JWT` `HttpOnly` / `SameSite=Lax`) emitidos en `/api/usuarios/ingresar`, `/api/usuarios/registro` y `/api/usuarios/token`, con validación constante de firma, rechazo explícito de `alg: "none"` (`401 Unauthorized`) y revocación en `/api/usuarios/salir`. Mantiene compatibilidad con la sesión HTTP (`JSESSIONID`) para preservar el carrito `@SessionScope` de invitados y usuarios autenticados. Las peticiones mutantes autenticadas únicamente por sesión exigen token CSRF (`GET /api/csrf`), mientras que las peticiones con `Authorization: Bearer <token>` se autentican por filtro JWT. Las operaciones administrativas requieren rol `ADMIN` mediante `@PreAuthorize("hasRole('ADMIN')")` y las órdenes verifican propiedad para prevenir BOLA/IDOR (`403 Forbidden`).
 
 | Método | Ruta | Operación |
 |---|---|---|
@@ -95,9 +98,13 @@ Spring Security autentica con sesión HTTP y cookie HttpOnly `JSESSIONID`; no se
 | DELETE | /api/carrito/items/{id} | Quitar producto |
 | DELETE | /api/carrito | Vaciar selección |
 | POST | /api/carrito/checkout | Comprar con direccion; exige autenticación |
-| GET | /api/usuarios/sesion | Consultar perfil de sesión |
-| POST | /api/usuarios/salir | Invalidar sesión |
+| POST | /api/usuarios/ingresar | Autenticar usuario y emitir JWT (`Authorization: Bearer` + cookie `AUREA_JWT`) |
+| GET | /api/usuarios/token | Emitir/renovar JWT para el usuario autenticado |
+| GET | /api/usuarios/sesion | Consultar perfil autenticado |
+| POST | /api/usuarios/salir | Revocar JWT e invalidar sesión |
 | GET | /api/ordenes/mis-pedidos | Consultar historial propio |
+| POST | /api/ordenes/{id}/confirmar | Confirmar orden (requiere `ADMIN`; 409 si la transición es inválida) |
+| POST | /api/ordenes/{id}/cancelar | Cancelar orden (propietario o `ADMIN`; 409 si ya fue completada o cancelada) |
 
 ## Demostración y pruebas
 
@@ -117,6 +124,6 @@ npm run build
 npm run lint
 ```
 
-Las 21 pruebas de backend usan H2 y MockMvc con los filtros de Spring Security. Cubren sesiones, compra, stock, validaciones y autorización, incluida la prohibición de confirmar pedidos ajenos y la reversión de pedido y stock si falla el observador. Las pruebas de arquitectura comprueban las tres capas de los cuatro componentes, prohíben referencias a datos o implementaciones de otros componentes, verifican la inyección mediante interfaces y revisan que las firmas de contratos y DTO no filtren entidades. Esto no sustituye el ensayo de navegador con PostgreSQL.
+Las 32 pruebas de backend usan H2 y MockMvc con los filtros de Spring Security y JWT. Cubren pruebas unitarias puras del patrón State en `Order` (`OrderStateTests`) y del patrón Strategy en `CostoEnvio` (`CostoEnvioStrategyTests`), mensajería asíncrona e idempotencia con RabbitMQ (`OrderMessagingIntegrationTests`), seguridad JWT (`Bearer`, rechazo de `alg: "none"`, revocación en logout, RBAC `403`, BOLA/IDOR, BCrypt cost 12, CSRF y cabeceras HTTP), código `409 Conflict` ante transiciones de estado inválidas (`SeguridadJwtYEstadoHttpTests`), sesiones y compra (`CarritoCompraTests`) y reglas de arquitectura en capas (`ArquitecturaCapasTests`). Esto no sustituye el ensayo de navegador con PostgreSQL.
 
 La eliminación de descuentos retira sus entidades y relaciones del código. No se ejecutaron borrados sobre PostgreSQL; en una base existente pueden permanecer tablas o columnas antiguas que Hibernate update no elimina. Los pedidos anteriores conservan sus importes registrados.

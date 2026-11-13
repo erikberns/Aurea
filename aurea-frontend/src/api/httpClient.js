@@ -2,9 +2,16 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localho
 export class ApiError extends Error {
   constructor(message, status, data) { super(message); this.status = status; this.data = data; }
 }
+
+// Token JWT en memoria (respaldado por cookie HttpOnly AUREA_JWT, nunca en localStorage).
+let bearerToken = null;
+
 // Cada mutacion obtiene un token actual, incluso despues de logout o una sesion nueva.
 export async function httpRequest(path, { method = "GET", body } = {}) {
   const headers = { "Content-Type": "application/json" };
+  if (bearerToken) {
+    headers["Authorization"] = bearerToken;
+  }
   let response;
   try {
     if (!["GET", "HEAD"].includes(method)) {
@@ -21,10 +28,20 @@ export async function httpRequest(path, { method = "GET", body } = {}) {
     if (error instanceof ApiError) throw error;
     throw new ApiError("No se pudo contactar al servidor de Áurea.", 0, null);
   }
+  const authHeader = response.headers.get("Authorization");
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    bearerToken = authHeader;
+  }
+  if (path === "/usuarios/salir" && response.ok) {
+    bearerToken = null;
+  }
   const data = response.headers.get("content-type")?.includes("application/json")
     ? await response.json().catch(() => null) : null;
   if (!response.ok) {
-    if (response.status === 401) window.dispatchEvent(new Event("aurea:sesion-vencida"));
+    if (response.status === 401) {
+      bearerToken = null;
+      window.dispatchEvent(new Event("aurea:sesion-vencida"));
+    }
     throw new ApiError(data?.mensaje || data?.message || `Error ${response.status}`, response.status, data);
   }
   return data;
