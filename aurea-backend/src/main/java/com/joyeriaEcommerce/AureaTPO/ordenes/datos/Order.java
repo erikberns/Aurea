@@ -8,7 +8,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PostLoad;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.time.LocalDate;
 
 @Entity
@@ -35,6 +37,9 @@ public class Order {
     @Column(name = "status")
     private OrderStatus status;
 
+    @Transient
+    private OrderState state;
+
     @Column(name = "total")
     private Double total;
 
@@ -47,9 +52,42 @@ public class Order {
     public Order(String shippingAddress, LocalDate orderDate, OrderStatus status, Double total, Long userId) {
         this.shippingAddress = shippingAddress;
         this.orderDate = orderDate;
-        this.status = status;
+        this.status = status != null ? status : OrderStatus.PENDING;
+        this.state = OrderState.fromStatus(this.status);
         this.total = total;
         this.userId = userId;
+    }
+
+    @PostLoad
+    void reconstruirEstado() {
+        this.state = OrderState.fromStatus(this.status);
+    }
+
+    private OrderState estadoActual() {
+        if (this.state == null || this.state.toStatus() != this.status) {
+            this.state = OrderState.fromStatus(this.status);
+        }
+        return this.state;
+    }
+
+    private void aplicarEstado(OrderState nuevoEstado) {
+        this.state = nuevoEstado;
+        this.status = nuevoEstado.toStatus();
+    }
+
+    /** Delega la transición confirmar() en el estado actual (Patrón State). */
+    public void confirmar() {
+        aplicarEstado(estadoActual().confirmar());
+    }
+
+    /** Delega la transición completar() en el estado actual (Patrón State). */
+    public void completar() {
+        aplicarEstado(estadoActual().completar());
+    }
+
+    /** Delega la transición cancelar() en el estado actual (Patrón State). */
+    public void cancelar() {
+        aplicarEstado(estadoActual().cancelar());
     }
 
     public Long getId() {
@@ -83,6 +121,7 @@ public class Order {
 
     public void setStatus(OrderStatus status) {
         this.status = status;
+        this.state = OrderState.fromStatus(status);
     }
 
     public Double getTotal() {

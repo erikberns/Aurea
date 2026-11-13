@@ -43,10 +43,7 @@ public class OrderService implements IPedidos {
         if (!order.getUserId().equals(usuarioId)) {
             throw new SecurityException("No tienes permiso para confirmar esta orden");
         }
-        if (order.getStatus() != OrderStatus.PENDING) {
-            throw new IllegalStateException("La orden no está en un estado válido para confirmar");
-        }
-        order.setStatus(OrderStatus.CONFIRMED);
+        order.confirmar();
         Order saved = orderRepository.save(order);
         Map<Long, Integer> cantidades = new HashMap<>();
         for (var item : saved.getItems()) {
@@ -61,17 +58,18 @@ public class OrderService implements IPedidos {
     @Transactional
     public void completeOrder(Long orderId) {
         Order order = buscar(orderId);
-        if (order.getStatus() == OrderStatus.CONFIRMED) {
-            order.setStatus(OrderStatus.COMPLETED);
-            orderRepository.save(order);
+        if (order.getStatus() == OrderStatus.COMPLETED) {
+            return; // Receptor idempotente ante duplicados de mensajería
         }
+        order.completar();
+        orderRepository.save(order);
     }
 
     @Override
     @Transactional
     public OrderDTO approveReturn(Long id) {
         Order order = buscar(id);
-        order.setStatus(OrderStatus.CANCELLED);
+        order.cancelar();
         return toDTO(orderRepository.save(order));
     }
 
