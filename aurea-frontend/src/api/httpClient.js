@@ -42,6 +42,9 @@ export async function httpRequest(path, { method = "GET", body } = {}) {
       bearerToken = null;
       window.dispatchEvent(new Event("aurea:sesion-vencida"));
     }
+    if (response.status === 403 && !data?.mensaje) {
+      throw new ApiError("No tenés permiso para realizar esta acción (403).", 403, data);
+    }
     throw new ApiError(data?.mensaje || data?.message || `Error ${response.status}`, response.status, data);
   }
   return data;
