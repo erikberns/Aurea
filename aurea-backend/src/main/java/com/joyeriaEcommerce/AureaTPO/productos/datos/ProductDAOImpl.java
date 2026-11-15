@@ -37,6 +37,11 @@ public class ProductDAOImpl implements ProductDAO {
     }
 
     @Override
+    public Optional<Product> findByIdForUpdate(Long id) {
+        return Optional.ofNullable(entityManager.find(Product.class, id, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE));
+    }
+
+    @Override
     public void deleteById(Long id) {
         Product product = entityManager.find(Product.class, id);
         if (product != null) {

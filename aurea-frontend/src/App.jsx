@@ -11,6 +11,7 @@ import Checkout from "./pages/Checkout";
 import Login from "./pages/Login";
 import Registro from "./pages/Registro";
 import Cuenta from "./pages/Cuenta";
+import Reposiciones from "./pages/Reposiciones";
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/login" element={<Login />} />
             <Route path="/registro" element={<Registro />} />
+            <Route path="/admin/reposiciones" element={<ProtectedRoute><Reposiciones /></ProtectedRoute>} />
             <Route
               path="/cuenta"
               element={

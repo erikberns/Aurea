@@ -13,4 +13,6 @@ public interface IProductos {
     ProductDTO updateProduct(Long id, String name, String description, String imageUrl);
     void deleteProduct(Long id);
     void descontarStock(Map<Long, Integer> cantidades);
+    void aplicarReposicion(String eventId, Long productoId, int cantidad);
+    boolean reposicionAplicada(String eventId);
 }

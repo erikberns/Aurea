@@ -90,6 +90,11 @@ export default function Header() {
             </div>
 
             <div className="flex items-center gap-3">
+              {(usuario?.rol === "ADMIN" || usuario?.rol === "ROLE_ADMIN") && (
+                <Link to="/admin/reposiciones" className="text-sm text-primary hover:underline" aria-label="Administrar reposiciones">
+                  Reposiciones
+                </Link>
+              )}
               <button aria-label="Favoritos" className="p-2 text-on-surface-variant hover:text-primary transition-colors duration-200 relative active:scale-[0.99]">
                 <span className="material-symbols-outlined text-[22px]">favorite</span>
               </button>

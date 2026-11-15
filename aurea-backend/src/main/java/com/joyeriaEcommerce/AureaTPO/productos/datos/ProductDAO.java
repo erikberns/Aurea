@@ -6,6 +6,7 @@ import java.util.Optional;
 public interface ProductDAO {
     List<Product> findAll();
     Optional<Product> findById(Long id);
+    Optional<Product> findByIdForUpdate(Long id);
     Product save(Product product);
     void deleteById(Long id);
     long count();

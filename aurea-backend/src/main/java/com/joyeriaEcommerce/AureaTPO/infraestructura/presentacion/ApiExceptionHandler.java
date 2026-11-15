@@ -15,6 +15,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(com.joyeriaEcommerce.AureaTPO.reposiciones.negocio.ProveedorNoDisponibleException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    ApiError proveedorNoDisponible(com.joyeriaEcommerce.AureaTPO.reposiciones.negocio.ProveedorNoDisponibleException ex) {
+        return new ApiError(Instant.now(), 503, ex.getMessage(), Map.of());
+    }
 
     @ExceptionHandler(EmailYaRegistradoException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
