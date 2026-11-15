@@ -12,10 +12,13 @@ public class ProductService implements IProductos {
 
     private final ProductDAO productDAO;
     private final com.joyeriaEcommerce.AureaTPO.productos.datos.CategoryRepository categoryRepository;
+    private final com.joyeriaEcommerce.AureaTPO.productos.datos.ReposicionAplicadaRepository reposicionesAplicadas;
 
-    public ProductService(ProductDAO productDAO, com.joyeriaEcommerce.AureaTPO.productos.datos.CategoryRepository categoryRepository) {
+    public ProductService(ProductDAO productDAO, com.joyeriaEcommerce.AureaTPO.productos.datos.CategoryRepository categoryRepository,
+            com.joyeriaEcommerce.AureaTPO.productos.datos.ReposicionAplicadaRepository reposicionesAplicadas) {
         this.productDAO = productDAO;
         this.categoryRepository = categoryRepository;
+        this.reposicionesAplicadas = reposicionesAplicadas;
     }
 
     @PostConstruct
@@ -111,6 +114,28 @@ public class ProductService implements IProductos {
             productDAO.save(product);
         }
     }
+
+    @Override
+    @Transactional
+    public void aplicarReposicion(String eventId, Long productoId, int cantidad) {
+        java.util.UUID.fromString(eventId);
+        if (cantidad <= 0 || cantidad > 10000) throw new IllegalArgumentException("Cantidad de reposición inválida");
+        Product product = productDAO.findByIdForUpdate(productoId)
+                .orElseThrow(() -> new IllegalArgumentException("Producto de reposición inexistente"));
+        var previa = reposicionesAplicadas.findById(eventId);
+        if (previa.isPresent()) {
+            if (!previa.get().productoId.equals(productoId) || previa.get().cantidad != cantidad)
+                throw new IllegalStateException("Evento reutilizado con otros datos");
+            return;
+        }
+        product.setStock(Math.addExact(product.getStock(), cantidad));
+        productDAO.save(product);
+        reposicionesAplicadas.saveAndFlush(new com.joyeriaEcommerce.AureaTPO.productos.datos.ReposicionAplicada(eventId, productoId, cantidad));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean reposicionAplicada(String eventId) { return reposicionesAplicadas.existsById(eventId); }
 
     private ProductDTO toDTO(Product product) {
         var category = product.getCategory();

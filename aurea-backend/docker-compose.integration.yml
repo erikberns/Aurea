@@ -1,0 +1,28 @@
+# Entorno aislado para pruebas; no usa el PostgreSQL ni las colas de la aplicación.
+services:
+  rabbitmq:
+    image: rabbitmq:4-management
+    ports:
+      - "127.0.0.1:5673:5672"
+      - "127.0.0.1:15673:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: aurea_test
+      RABBITMQ_DEFAULT_PASS: aurea_test
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  postgres:
+    image: postgres:17
+    ports:
+      - "127.0.0.1:55433:5432"
+    environment:
+      POSTGRES_DB: aurea_integration
+      POSTGRES_USER: aurea_test
+      POSTGRES_PASSWORD: aurea_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aurea_test -d aurea_integration"]
+      interval: 5s
+      timeout: 5s
+      retries: 20

@@ -1,6 +1,12 @@
 # Áurea Joyas
 
-Aplicación React + Spring Boot + JPA/PostgreSQL. Alcance de esta entrega: Usuarios, Carrito, Productos y Pedidos.
+Aplicación React + Spring Boot + JPA/PostgreSQL. Componentes: Usuarios, Carrito, Productos, Pedidos, Reposición y Notificaciones.
+
+## Reposición SOAP y recepción asincrónica
+
+La pantalla ADMIN `/admin/reposiciones` permite solicitar mercadería al proveedor SOAP externo y registrar su recepción. Una outbox publica ReposicionRecibida a RabbitMQ; inventario y avisos administrativos tienen suscripciones independientes. Aceptar la solicitud no aumenta stock: lo hace el consumidor al recibir el evento.
+
+El proveedor vive en `../ProveedorSOAP/`, fuera de este repositorio, con su propio Maven, WSDL y almacenamiento. Ver [arranque, contratos y pruebas](docs/reposiciones-soap-mensajeria.md). Para bases con `DDL_AUTO=validate`, aplicar [las tablas nuevas](docs/sql/002_reposiciones.sql) antes de arrancar.
 
 ## Ejecución
 
@@ -19,7 +25,7 @@ npm run dev
 
 Usar el mismo hostname en ambos lados y el origen autorizado por `CORS_ALLOWED_ORIGIN` (por defecto http://localhost:5173).
 
-## Cuatro componentes, tres capas
+## Seis componentes, tres capas
 
 ```text
 com/joyeriaEcommerce/AureaTPO/
@@ -43,9 +49,17 @@ com/joyeriaEcommerce/AureaTPO/
     configuracion/ Configuración de Spring Security, JWT (IJwtService, JwtService, JwtAuthenticationFilter) y RabbitMQ
     presentacion/  Manejo transversal de errores HTTP (ApiExceptionHandler)
     datos/         Inicialización de datos y compatibilidad del esquema
+  reposiciones/
+    presentacion/  API administrativa de reposiciones
+    negocio/       IReposiciones, IProveedorGateway, Adapter SOAP, evento y publicador outbox
+    datos/         Reposicion, EventoPendiente y repositorios
+  notificaciones/
+    presentacion/  API administrativa de avisos
+    negocio/       INotificaciones, servicio y consumidor
+    datos/         Notificacion y repositorio
 ```
 
-Pedidos se denomina `ordenes` en el código. Categorías es parte de Productos y permite filtrar el catálogo. Infraestructura contiene soporte técnico compartido, no un quinto componente funcional.
+Pedidos se denomina `ordenes` en el código. Categorías es parte de Productos y permite filtrar el catálogo. Infraestructura contiene soporte técnico compartido, no un componente funcional adicional.
 
 La dirección entre capas es presentación → negocio → datos. Los controladores reciben interfaces de negocio por constructor y consumen DTO, sin acceder directamente a entidades o repositorios. El negocio accede a su propia capa de datos mediante interfaces. Para colaborar con otro componente utiliza sus contratos públicos de negocio; no importa sus servicios concretos, entidades ni repositorios. Los DTO no exponen entidades JPA y su conversión se realiza dentro del servicio propietario. El frontend React pertenece a presentación; sus clientes HTTP no reemplazan el negocio ni la persistencia del servidor.
 
@@ -55,6 +69,8 @@ La dirección entre capas es presentación → negocio → datos. Los controlado
 | Carrito | ICarrito |
 | Productos | IProductos |
 | Pedidos | IPedidos, ICheckout e ICalculoEnvio |
+| Reposición | IReposiciones e IProveedorGateway |
+| Notificaciones | INotificaciones |
 
 Pedidos conserva los identificadores de usuario y producto y obtiene sus DTO mediante IUsuarios e IProductos. Las columnas existentes `user_id` y `product_id` mantienen sus nombres. OrderItem conserva el precio registrado al comprar. Los eventos de negocio son contratos inmutables: OrderConfirmedEvent permite comunicar la confirmación sin conocer al observador. La aplicación continúa siendo un único despliegue Spring Boot; la separación es lógica, por componentes y capas. La inicialización técnica de la base queda en infraestructura.
 
@@ -85,7 +101,7 @@ El catálogo, la portada y el detalle utilizan la API real de productos. Todos l
 
 Los Architecture Decision Records (ADRs) de cada patrón se encuentran en `docs/adr/` (`ADR-001` a `ADR-005`), y la matriz de criterios de aceptación de seguridad verificables en `docs/seguridad-criterios-aceptacion.md`.
 
-No hay listener de notificaciones ni métricas de checkout. La confirmación no procesa un cobro externo.
+Los avisos administrativos nuevos consumen recepciones de mercadería. No hay notificaciones ni métricas de checkout. La confirmación no procesa un cobro externo.
 
 ## Seguridad y API
 
@@ -124,6 +140,6 @@ npm run build
 npm run lint
 ```
 
-Las 32 pruebas de backend usan H2 y MockMvc con los filtros de Spring Security y JWT. Cubren pruebas unitarias puras del patrón State en `Order` (`OrderStateTests`) y del patrón Strategy en `CostoEnvio` (`CostoEnvioStrategyTests`), mensajería asíncrona e idempotencia con RabbitMQ (`OrderMessagingIntegrationTests`), seguridad JWT (`Bearer`, rechazo de `alg: "none"`, revocación en logout, RBAC `403`, BOLA/IDOR, BCrypt cost 12, CSRF y cabeceras HTTP), código `409 Conflict` ante transiciones de estado inválidas (`SeguridadJwtYEstadoHttpTests`), sesiones y compra (`CarritoCompraTests`) y reglas de arquitectura en capas (`ArquitecturaCapasTests`). Esto no sustituye el ensayo de navegador con PostgreSQL.
+La suite de backend contiene 45 pruebas: 43 se ejecutan sin servicios externos y 2 requieren el entorno de integración real. Las pruebas habituales usan H2 y MockMvc con los filtros de Spring Security y JWT. Cubren pruebas unitarias puras del patrón State en `Order` (`OrderStateTests`) y del patrón Strategy en `CostoEnvio` (`CostoEnvioStrategyTests`), mensajería asíncrona e idempotencia con RabbitMQ (`OrderMessagingIntegrationTests`), seguridad JWT (`Bearer`, rechazo de `alg: "none"`, revocación en logout, RBAC `403`, BOLA/IDOR, BCrypt cost 12, CSRF y cabeceras HTTP), código `409 Conflict` ante transiciones de estado inválidas (`SeguridadJwtYEstadoHttpTests`), sesiones y compra (`CarritoCompraTests`) y reglas de arquitectura en capas (`ArquitecturaCapasTests`). Esto no sustituye el ensayo de navegador con PostgreSQL.
 
 La eliminación de descuentos retira sus entidades y relaciones del código. No se ejecutaron borrados sobre PostgreSQL; en una base existente pueden permanecer tablas o columnas antiguas que Hibernate update no elimina. Los pedidos anteriores conservan sus importes registrados.
