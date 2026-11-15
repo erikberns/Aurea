@@ -70,18 +70,6 @@ export default function CatalogoView({ joyas, categorias, categoriaFiltro, searc
                 ))}
               </ul>
             </div>
-            <div className="bg-surface-container rounded p-4">
-              <p className="font-label-md text-label-md text-on-surface flex items-center gap-2 mb-2">
-                <span className="material-symbols-outlined text-base">card_giftcard</span>
-                ¿Necesitás un regalo?
-              </p>
-              <p className="font-body-sm text-body-sm text-on-surface-variant mb-3">
-                Te enviamos tu joya en nuestra icónica caja con lazo y dedicatoria personalizada gratis.
-              </p>
-              <button className="w-full bg-surface-container-lowest border border-outline-variant py-2 font-label-sm text-label-sm uppercase tracking-wider">
-                Descubrir Guía de Regalos
-              </button>
-            </div>
           </aside>
 
           <div className="lg:col-span-9">
