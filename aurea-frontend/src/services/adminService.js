@@ -18,6 +18,7 @@ export const adminService = {
 
   pedidos: () => httpRequest("/ordenes"),
   pagos: () => httpRequest("/pagos"),
+  aprobarDevolucion: (id) => httpRequest(`/ordenes/${q(id)}/devolucion/aprobar`, { method: "POST" }),
 
   usuarios: () => httpRequest("/usuarios"),
   cambiarRol: (id, rol) => httpRequest(`/usuarios/${id}/rol`, { method: "PATCH", body: { rol } }),
