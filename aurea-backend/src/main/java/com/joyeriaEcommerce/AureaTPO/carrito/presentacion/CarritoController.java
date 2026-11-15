@@ -44,9 +44,10 @@ public class CarritoController {
     @PostMapping("/checkout")
     @PreAuthorize("isAuthenticated()")
     public OrderDTO comprar(@Valid @RequestBody Comprar request, Authentication auth) {
-        return carrito.comprar(auth.getName(), request.direccion());
+        return carrito.comprar(auth.getName(), request.direccion(), request.metodoPago());
     }
 
     public record Agregar(@NotNull @Positive Long productoId, @NotNull @Positive Integer cantidad) {}
-    public record Comprar(@NotBlank String direccion) {}
+    /** metodoPago: código de un método de prueba (GET /api/pagos/configuracion); nunca datos de tarjeta. */
+    public record Comprar(@NotBlank String direccion, @NotBlank String metodoPago) {}
 }

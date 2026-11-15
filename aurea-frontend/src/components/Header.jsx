@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import Logo from "./Logo";
+import { esAdmin } from "../utils/admin";
 
 const NAV_LINKS = [
   { label: "Novedades", to: "/" },
@@ -90,9 +91,14 @@ export default function Header() {
             </div>
 
             <div className="flex items-center gap-3">
-              {(usuario?.rol === "ADMIN" || usuario?.rol === "ROLE_ADMIN") && (
-                <Link to="/admin/reposiciones" className="text-sm text-primary hover:underline" aria-label="Administrar reposiciones">
-                  Reposiciones
+              {esAdmin(usuario) && (
+                <Link
+                  to="/admin"
+                  className="flex items-center gap-1 rounded border border-primary-container/40 px-2.5 py-1 font-label-md text-label-md text-primary hover:bg-primary-container/10"
+                  aria-label="Panel de administración"
+                >
+                  <span className="material-symbols-outlined text-[18px]">admin_panel_settings</span>
+                  <span className="hidden md:inline">Panel admin</span>
                 </Link>
               )}
               <button aria-label="Favoritos" className="p-2 text-on-surface-variant hover:text-primary transition-colors duration-200 relative active:scale-[0.99]">

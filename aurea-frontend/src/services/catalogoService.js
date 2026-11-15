@@ -1,23 +1,13 @@
 import { getProductos, getProductoById } from "./productosService";
+import { imagenDeRespaldo as getFallbackImage } from "../utils/imagenes";
 
-const getFallbackImage = (categoria) => {
-  switch (categoria) {
-    case "Anillos apilables":
-      return "https://images.unsplash.com/photo-1603561591411-07134e71a2a9?q=80&w=800&auto=format&fit=crop";
-    case "Collares & Medallas":
-    case "Pulseras & Eslabones":
-      return "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=800&auto=format&fit=crop";
-    case "Pendientes & Huggies":
-      return "https://images.unsplash.com/photo-1630019852942-f89202989a59?q=80&w=800&auto=format&fit=crop";
-    default:
-      return "https://images.unsplash.com/photo-1603561591411-07134e71a2a9?q=80&w=800&auto=format&fit=crop";
-  }
-};
+// La tienda solo muestra joyas activas: las archivadas desde el panel quedan ocultas.
+const activos = (productos) => productos.filter((p) => p.active !== false);
 
 export const catalogoService = {
   async buscarJoyas(filtros = {}) {
     try {
-      const productos = await getProductos();
+      const productos = activos(await getProductos());
       
       // Mapear productos del backend al formato del frontend
       let resultado = productos.map(p => {
@@ -81,7 +71,7 @@ export const catalogoService = {
   
   async listarCategorias() {
     try {
-      const productos = await getProductos();
+      const productos = activos(await getProductos());
       const categorias = productos.map(p => p.category ? p.category.description : "Joyería");
       return [...new Set(categorias)];
     } catch (e) {

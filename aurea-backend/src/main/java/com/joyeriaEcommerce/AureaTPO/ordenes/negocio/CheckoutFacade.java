@@ -4,6 +4,7 @@ import com.joyeriaEcommerce.AureaTPO.ordenes.datos.Order;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderItem;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderRepository;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderStatus;
+import com.joyeriaEcommerce.AureaTPO.pagos.negocio.IPagos;
 import com.joyeriaEcommerce.AureaTPO.productos.negocio.IProductos;
 import com.joyeriaEcommerce.AureaTPO.productos.negocio.ProductDTO;
 import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.IUsuarios;
@@ -12,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.Map;
 
-/** Facade: coordina la compra mediante contratos de negocio. */
+/** Facade: coordina la compra mediante contratos de negocio de Usuarios, Productos, Pedidos y Pagos. */
 @Service
 public class CheckoutFacade implements ICheckout {
     private final IPedidos pedidos;
@@ -20,14 +21,16 @@ public class CheckoutFacade implements ICheckout {
     private final IProductos productos;
     private final IUsuarios usuarios;
     private final ICalculoEnvio envio;
+    private final IPagos pagos;
 
     public CheckoutFacade(IPedidos pedidos, OrderRepository orderRepository, IProductos productos,
-                          IUsuarios usuarios, ICalculoEnvio envio) {
+                          IUsuarios usuarios, ICalculoEnvio envio, IPagos pagos) {
         this.pedidos = pedidos;
         this.orderRepository = orderRepository;
         this.productos = productos;
         this.usuarios = usuarios;
         this.envio = envio;
+        this.pagos = pagos;
     }
 
     @Override
@@ -57,10 +60,18 @@ public class CheckoutFacade implements ICheckout {
         return pedidos.consultarPedido(guardada.getId());
     }
 
+    /**
+     * Flujo crítico con transacción declarativa:
+     * 1) crea el pedido PENDING; 2) autoriza el pago en la pasarela (solo retiene el importe);
+     * 3) confirma el pedido y descuenta stock (Observer síncrono).
+     * Si cualquier paso falla, se revierte todo: pedido y stock vuelven atrás y Pagos anula la retención.
+     * Recién después del commit se captura el cobro y se publica el evento a RabbitMQ.
+     */
     @Override
     @Transactional
-    public OrderDTO purchase(String username, String direccion, Map<Long, Integer> items) {
+    public OrderDTO purchase(String username, String direccion, Map<Long, Integer> items, String metodoPago) {
         OrderDTO creada = placeOrder(username, direccion, items);
+        pagos.autorizar(creada.id(), creada.total(), metodoPago);
         return pedidos.confirmOrder(creada.id(), username);
     }
 }

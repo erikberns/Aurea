@@ -15,6 +15,19 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(com.joyeriaEcommerce.AureaTPO.pagos.negocio.PagoRechazadoException.class)
+    @ResponseStatus(HttpStatus.PAYMENT_REQUIRED)
+    ApiError pagoRechazado(com.joyeriaEcommerce.AureaTPO.pagos.negocio.PagoRechazadoException ex) {
+        return new ApiError(Instant.now(), 402, "Pago rechazado: " + ex.getMessage()
+                + " No se registró el pedido; el carrito se conserva.", Map.of());
+    }
+
+    @ExceptionHandler(com.joyeriaEcommerce.AureaTPO.pagos.negocio.PasarelaNoDisponibleException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    ApiError pasarelaNoDisponible(com.joyeriaEcommerce.AureaTPO.pagos.negocio.PasarelaNoDisponibleException ex) {
+        return new ApiError(Instant.now(), 503, ex.getMessage(), Map.of());
+    }
+
     @ExceptionHandler(com.joyeriaEcommerce.AureaTPO.reposiciones.negocio.ProveedorNoDisponibleException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
     ApiError proveedorNoDisponible(com.joyeriaEcommerce.AureaTPO.reposiciones.negocio.ProveedorNoDisponibleException ex) {

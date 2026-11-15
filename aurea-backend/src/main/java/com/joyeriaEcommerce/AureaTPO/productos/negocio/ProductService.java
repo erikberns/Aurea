@@ -62,7 +62,7 @@ public class ProductService implements IProductos {
     }
 
     @Transactional
-    public ProductDTO updateProduct(Long productId, String name, String description, String imageUrl) {
+    public ProductDTO updateProduct(Long productId, String name, String description, String imageUrl, Long categoryId) {
         Product product = productDAO.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
         if (name != null && !name.trim().isEmpty()) {
@@ -74,7 +74,29 @@ public class ProductService implements IProductos {
         if (imageUrl != null && !imageUrl.trim().isEmpty()) {
             product.setImageUrl(imageUrl);
         }
+        if (categoryId != null) {
+            product.setCategory(categoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada")));
+        }
         return toDTO(productDAO.save(product));
+    }
+
+    @Override
+    @Transactional
+    public ProductDTO cambiarEstado(Long productId, boolean activo) {
+        Product product = productDAO.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+        product.setActive(activo);
+        return toDTO(productDAO.save(product));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<CategoryDTO> getCategories() {
+        return categoryRepository.findAll().stream()
+                .map(c -> new CategoryDTO(c.getId(), c.getDescription()))
+                .sorted(java.util.Comparator.comparing(CategoryDTO::description))
+                .toList();
     }
 
     @Transactional

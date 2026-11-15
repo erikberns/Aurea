@@ -77,7 +77,7 @@ class CarritoHttpTests {
  @Test void compraAtomicaVaciaCarritoYDescuentaStock() throws Exception {
   long id=producto(); MockHttpSession a=sesion(); registrar(a); agregar(a,id,2);
   mvc.perform(post("/api/carrito/checkout").session(a).with(token()).contentType("application/json")
-   .content("{\"direccion\":\"Calle 123\"}"))
+   .content("{\"direccion\":\"Calle 123\",\"metodoPago\":\"VISA_APROBADA\"}"))
    .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(24500.0))
    .andExpect(jsonPath("$.status").value("CONFIRMED"))
    .andExpect(jsonPath("$.items[0].product.id").value(id))
@@ -88,7 +88,7 @@ class CarritoHttpTests {
    .andExpect(status().isOk()).andExpect(jsonPath("$[0].items[0].product.id").value(id));
   mvc.perform(get("/api/carrito").session(a)).andExpect(jsonPath("$.cantidadTotal").value(0));
   mvc.perform(post("/api/carrito/checkout").session(a).with(token()).contentType("application/json")
-   .content("{\"direccion\":\"Calle 123\"}")).andExpect(status().isBadRequest());
+   .content("{\"direccion\":\"Calle 123\",\"metodoPago\":\"VISA_APROBADA\"}")).andExpect(status().isBadRequest());
  }
  @Test void cambiarDeCuentaDestruyeElCarritoDeLaSesionAnterior() throws Exception {
   MockHttpSession anterior=sesion(); registrar(anterior); agregar(anterior,producto(),1);
@@ -107,7 +107,7 @@ class CarritoHttpTests {
   long id=producto(); MockHttpSession a=sesion(); registrar(a); agregar(a,id,2); productos.updateStock(id,1);
   long antes=ordenes.count();
   mvc.perform(post("/api/carrito/checkout").session(a).with(token()).contentType("application/json")
-   .content("{\"direccion\":\"Calle 123\"}")).andExpect(status().isConflict());
+   .content("{\"direccion\":\"Calle 123\",\"metodoPago\":\"VISA_APROBADA\"}")).andExpect(status().isConflict());
   assertThat(ordenes.count()).isEqualTo(antes);
   assertThat(productos.getProductById(id).stock()).isEqualTo(1);
   mvc.perform(get("/api/carrito").session(a)).andExpect(jsonPath("$.cantidadTotal").value(2));

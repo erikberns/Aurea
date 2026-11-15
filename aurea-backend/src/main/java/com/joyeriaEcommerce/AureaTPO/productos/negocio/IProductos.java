@@ -10,7 +10,11 @@ public interface IProductos {
     ProductDTO createProduct(String name, String description, Double price, Integer stock, Long categoryId, String imageUrl);
     ProductDTO updatePrice(Long id, Double price);
     ProductDTO updateStock(Long id, Integer stock);
-    ProductDTO updateProduct(Long id, String name, String description, String imageUrl);
+    /** Actualiza los datos descriptivos; los valores nulos o vacíos conservan el dato actual. */
+    ProductDTO updateProduct(Long id, String name, String description, String imageUrl, Long categoryId);
+    /** Archiva (oculta de la tienda) o reactiva un producto sin borrarlo: preserva el historial de pedidos. */
+    ProductDTO cambiarEstado(Long id, boolean activo);
+    List<CategoryDTO> getCategories();
     void deleteProduct(Long id);
     void descontarStock(Map<Long, Integer> cantidades);
     void aplicarReposicion(String eventId, Long productoId, int cantidad);

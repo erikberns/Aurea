@@ -27,6 +27,7 @@ public class ApplicationConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        // Costo 12: cada hash guarda su propio costo, así que los generados antes con 10 siguen validando.
+        return new BCryptPasswordEncoder(12);
     }
 }

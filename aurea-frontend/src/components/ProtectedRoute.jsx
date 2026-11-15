@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { esAdmin } from "../utils/admin";
 
 /**
  * Réplica, del lado del cliente, de la seguridad declarativa que
@@ -19,7 +20,8 @@ export default function ProtectedRoute({ children, rolRequerido }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (rolRequerido && usuario?.rol !== rolRequerido) {
+  const autorizado = rolRequerido === "ADMIN" ? esAdmin(usuario) : usuario?.rol === rolRequerido;
+  if (rolRequerido && !autorizado) {
     return <Navigate to="/cuenta" replace />;
   }
 

@@ -79,7 +79,7 @@ class IntegracionRealTests {
             assertThat(notificaciones.listar().stream().filter(n -> n.id().equals(id)).count()).isEqualTo(1);
         });
         // El proceso punto a punto anterior también sigue funcionando con el broker real.
-        var pedido = checkout.purchase("admin@aurea.com", "Dirección de prueba", Map.of(productoId, 1));
+        var pedido = checkout.purchase("admin@aurea.com", "Dirección de prueba", Map.of(productoId, 1), "VISA_APROBADA");
         await().atMost(Duration.ofSeconds(10)).untilAsserted(() ->
                 assertThat(pedidos.consultarPedido(pedido.id()).status()).isEqualTo("COMPLETED"));
         assertThat(productos.getProductById(productoId).stock()).isEqualTo(16);
