@@ -155,6 +155,7 @@ public class UsuarioController {
         jwtCookie.setHttpOnly(true);
         jwtCookie.setPath("/");
         jwtCookie.setMaxAge(900);
+        jwtCookie.setAttribute("SameSite", "Lax");
         response.addCookie(jwtCookie);
     }
 }

@@ -19,10 +19,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** Verifica las convenciones de paquetes y las dependencias directas entre capas. */
 class ArquitecturaCapasTests {
     private static final Path BASE = Path.of("src/main/java/com/joyeriaEcommerce/AureaTPO");
-    private static final Set<String> COMPONENTES = Set.of("usuarios", "carrito", "productos", "ordenes", "reposiciones", "notificaciones");
+    private static final Set<String> COMPONENTES = Set.of("usuarios", "carrito", "productos", "ordenes", "reposiciones", "notificaciones", "pagos");
     private static final Set<String> CAPAS = Set.of("presentacion", "negocio", "datos");
     private static final Pattern REFERENCIA = Pattern.compile(
-            "com\\.joyeriaEcommerce\\.AureaTPO\\.(usuarios|carrito|productos|ordenes|reposiciones|notificaciones)\\.(presentacion|negocio|datos)\\.");
+            "com\\.joyeriaEcommerce\\.AureaTPO\\.(usuarios|carrito|productos|ordenes|reposiciones|notificaciones|pagos)\\.(presentacion|negocio|datos)\\.");
 
     @Test
     void cadaComponenteContieneLasTresCapasYNoTieneClasesFueraDeEllas() throws IOException {
@@ -81,7 +81,7 @@ class ArquitecturaCapasTests {
     @Test
     void unComponenteSoloConoceContratosDeNegocioDeOtro() throws Exception {
         Pattern referenciaCompleta = Pattern.compile(
-                "com\\.joyeriaEcommerce\\.AureaTPO\\.(usuarios|carrito|productos|ordenes|reposiciones|notificaciones)\\.(presentacion|negocio|datos)\\.([\\w.$]+)");
+                "com\\.joyeriaEcommerce\\.AureaTPO\\.(usuarios|carrito|productos|ordenes|reposiciones|notificaciones|pagos)\\.(presentacion|negocio|datos)\\.([\\w.$]+)");
         for (String origen : COMPONENTES) {
             for (Path archivo : fuentes(BASE.resolve(origen))) {
                 String codigo = Files.readString(archivo).replaceAll("(?m)^package .*;", "");

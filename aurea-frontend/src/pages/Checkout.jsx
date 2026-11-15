@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import { PrimaryButton, SecondaryButton, FormField, TextInput } from "../components/ui";
+import { PrimaryButton, SecondaryButton } from "../components/ui";
 import { httpRequest } from "../api/httpClient";
 
 const fmt = new Intl.NumberFormat("es-AR");
@@ -14,37 +14,44 @@ export default function Checkout() {
   const [addressError, setAddressError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [cardNumber, setCardNumber] = useState("");
-  const [expiry, setExpiry] = useState("");
+  const [configPago, setConfigPago] = useState(null);
+  const [metodoPago, setMetodoPago] = useState("");
+  const [errorPago, setErrorPago] = useState("");
 
-  const handleCardNumberChange = (e) => {
-    let val = e.target.value.replace(/\D/g, "");
-    val = val.substring(0, 16);
-    const groups = val.match(/.{1,4}/g);
-    setCardNumber(groups ? groups.join(" ") : val);
-  };
-
-  const handleExpiryChange = (e) => {
-    let val = e.target.value.replace(/\D/g, "");
-    val = val.substring(0, 4);
-    if (val.length >= 3) {
-      setExpiry(`${val.substring(0, 2)}/${val.substring(2)}`);
-    } else {
-      setExpiry(val);
-    }
-  };
+  // La pasarela activa (Stripe en modo de prueba o simulada) define los métodos de prueba disponibles.
+  // El navegador solo envía un código de la lista: nunca números de tarjeta.
+  useEffect(() => {
+    if (!estaAutenticado) return;
+    let activo = true;
+    httpRequest("/pagos/configuracion")
+      .then((config) => {
+        if (!activo) return;
+        setConfigPago(config);
+        setMetodoPago((actual) => actual || config.metodos[0]?.codigo || "");
+      })
+      .catch(() => activo && setConfigPago(null));
+    return () => { activo = false; };
+  }, [estaAutenticado]);
 
   const navigate = useNavigate();
 
   const processPayment = async () => {
     if (!shippingAddress.trim()) { setAddressError(true); return; }
-    setAddressError(false); setLoading(true);
+    if (!metodoPago) { setErrorPago("Elegí un método de pago."); return; }
+    setAddressError(false); setErrorPago(""); setLoading(true);
     try {
-      const orden = await httpRequest("/carrito/checkout", { method: "POST", body: { direccion: shippingAddress } });
+      const orden = await httpRequest("/carrito/checkout", {
+        method: "POST",
+        body: { direccion: shippingAddress, metodoPago },
+      });
       await refrescar();
-      alert(`Pedido #${orden.id} confirmado por $${fmt.format(orden.total)}. No se realizó un cobro.`);
+      alert(`Pago aprobado. Pedido #${orden.id} confirmado por $${fmt.format(orden.total)}.`);
       navigate("/cuenta");
-    } catch (error) { alert(error.message); await refrescar(); }
+    } catch (error) {
+      // 402: tarjeta rechazada. El pedido no se registró y la bolsa se conserva.
+      setErrorPago(error.message);
+      await refrescar();
+    }
     finally { setLoading(false); }
   };
 
@@ -129,11 +136,15 @@ export default function Checkout() {
                 onClick={() => {
                   if (!shippingAddress.trim()) { setAddressError(true); return; }
                   setAddressError(false);
+                  setErrorPago("");
                   setShowPaymentModal(true);
                 }}
               >
                 {loading ? "Procesando..." : (estaAutenticado ? "Confirmar pedido" : "Iniciá sesión para comprar")}
               </PrimaryButton>
+              {errorPago && (
+                <p role="alert" className="font-body-sm text-body-sm text-error mt-3">{errorPago}</p>
+              )}
               {!estaAutenticado && (
                 <p className="font-body-sm text-body-sm text-on-surface-variant text-center mt-3">
                   <Link to="/login" className="text-primary hover:underline">
@@ -151,39 +162,50 @@ export default function Checkout() {
         </div>
       )}
 
-      <p className="mt-6 text-sm text-on-surface-variant">La confirmación registra el pedido. El pago externo todavía no está integrado.</p>
+      <p className="mt-6 text-sm text-on-surface-variant">
+        Pagos en modo de prueba{configPago ? ` (${configPago.proveedor === "stripe" ? "Stripe test" : "pasarela simulada"})` : ""}: no se realizan cobros reales.
+      </p>
       {carritoError && <p role="alert" className="mt-4 text-error">{carritoError}</p>}
 
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-container-high/60 backdrop-blur-sm">
           <div className="bg-surface-container-lowest rounded-xl shadow-[0_16px_40px_-8px_rgba(30,27,24,0.12)] w-full max-w-md p-6 border border-outline-variant/30">
-            <h3 className="font-headline-sm text-headline-sm text-on-surface mb-6">
-              Detalles de Pago
+            <h3 className="font-headline-sm text-headline-sm text-on-surface mb-2">
+              Método de pago
             </h3>
-            <div className="space-y-4 mb-8">
-              <FormField label="Número de Tarjeta">
-                <TextInput 
-                  placeholder="0000 0000 0000 0000" 
-                  value={cardNumber}
-                  onChange={handleCardNumberChange}
-                />
-              </FormField>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Vencimiento">
-                  <TextInput 
-                    placeholder="MM/AA" 
-                    value={expiry}
-                    onChange={handleExpiryChange}
-                  />
-                </FormField>
-                <FormField label="CVV">
-                  <TextInput placeholder="123" />
-                </FormField>
-              </div>
-              <FormField label="Nombre en la tarjeta">
-                <TextInput placeholder="Juan Pérez" />
-              </FormField>
-            </div>
+            <p className="font-body-sm text-body-sm text-on-surface-variant mb-6">
+              Entorno de prueba{configPago?.proveedor === "stripe" ? " de Stripe" : ""}. Elegí una tarjeta de prueba;
+              no ingreses datos reales.
+            </p>
+            {!configPago ? (
+              <p role="alert" className="font-body-sm text-body-sm text-error mb-8">
+                No se pudo obtener la configuración de pagos. Intentá nuevamente.
+              </p>
+            ) : (
+              <fieldset className="space-y-3 mb-8">
+                <legend className="sr-only">Tarjetas de prueba</legend>
+                {configPago.metodos.map((metodo) => (
+                  <label
+                    key={metodo.codigo}
+                    className={`flex items-center gap-3 border rounded p-3 cursor-pointer ${
+                      metodoPago === metodo.codigo ? "border-primary" : "border-outline-variant/40"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="metodoPago"
+                      value={metodo.codigo}
+                      checked={metodoPago === metodo.codigo}
+                      onChange={() => setMetodoPago(metodo.codigo)}
+                    />
+                    <span className="flex-1 font-body-md text-body-md text-on-surface">{metodo.descripcion}</span>
+                    <span className={`font-label-sm text-label-sm ${metodo.aprobacionEsperada ? "text-primary" : "text-error"}`}>
+                      {metodo.aprobacionEsperada ? "Aprueba" : "Rechaza"}
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
             <div className="flex justify-end gap-3">
               <SecondaryButton
                 onClick={() => setShowPaymentModal(false)}
@@ -197,7 +219,7 @@ export default function Checkout() {
                   setShowPaymentModal(false);
                   processPayment();
                 }}
-                disabled={loading}
+                disabled={loading || !configPago || !metodoPago}
                 className="w-auto px-6 h-11"
               >
                 Pagar ${fmt.format(totalCompra)}

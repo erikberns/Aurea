@@ -111,10 +111,10 @@ public class ServicioDeCarrito implements ICarrito {
     }
 
     @Override
-    public synchronized OrderDTO comprar(String usuario, String direccion) {
+    public synchronized OrderDTO comprar(String usuario, String direccion, String metodoPago) {
         verificarActivo();
         // El proxy de la fachada retorna después del commit. Un fallo conserva la selección.
-        OrderDTO orden = checkout.purchase(usuario, direccion, seleccion.consultar());
+        OrderDTO orden = checkout.purchase(usuario, direccion, seleccion.consultar(), metodoPago);
         seleccion.vaciar();
         return orden;
     }
