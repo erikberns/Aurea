@@ -1,4 +1,5 @@
 // Piezas visuales del panel de administración (estética de las maquetas de Áurea).
+import AureaLoader from "../AureaLoader";
 
 export const campo =
   "w-full h-11 rounded border border-outline-variant/70 bg-surface-container-lowest px-3 font-body-md text-body-md text-on-surface placeholder:text-outline/70 focus:outline-none focus:border-primary focus:ring-2 focus:ring-tertiary/20 disabled:opacity-60";
@@ -150,12 +151,7 @@ export function Vacio({ icono = "inbox", titulo, children }) {
 }
 
 export function Cargando({ texto = "Cargando…" }) {
-  return (
-    <p role="status" className="flex items-center gap-2 py-10 text-on-surface-variant">
-      <span className="material-symbols-outlined animate-spin">progress_activity</span>
-      {texto}
-    </p>
-  );
+  return <AureaLoader text={texto} />;
 }
 
 export function Chips({ opciones, valor, onCambiar, etiqueta }) {

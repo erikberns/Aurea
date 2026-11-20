@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { catalogoService } from "../services/catalogoService";
 import CatalogoView from "./CatalogoView";
+import AureaLoader from "../components/AureaLoader";
 
 export default function Catalogo() {
   // Estado local e interacción con APIs (Componente Stateful / Container)
@@ -9,18 +10,38 @@ export default function Catalogo() {
   const categoriaFiltro = searchParams.get("categoria");
   const searchFiltro = searchParams.get("search");
   const sortFiltro = searchParams.get("sort") || "populares";
-  
-  const [joyas, setJoyas] = useState([]);
-  const [categorias, setCategorias] = useState([]);
+  const claveConsulta = JSON.stringify([categoriaFiltro, searchFiltro, sortFiltro]);
+  const [resultado, setResultado] = useState(null);
+  const [errorCarga, setErrorCarga] = useState(null);
 
   useEffect(() => {
-    catalogoService.buscarJoyas({ 
-      categoria: categoriaFiltro || undefined,
-      search: searchFiltro || undefined,
-      sort: sortFiltro !== "populares" ? sortFiltro : undefined
-    }).then(setJoyas);
-    catalogoService.listarCategorias().then(setCategorias);
-  }, [categoriaFiltro, searchFiltro, sortFiltro]);
+    let activo = true;
+    Promise.all([
+      catalogoService.buscarJoyas({
+        categoria: categoriaFiltro || undefined,
+        search: searchFiltro || undefined,
+        sort: sortFiltro !== "populares" ? sortFiltro : undefined
+      }),
+      catalogoService.listarCategorias()
+    ])
+      .then(([listaJoyas, listaCategorias]) => {
+        if (!activo) return;
+        setResultado({ claveConsulta, joyas: listaJoyas, categorias: listaCategorias });
+        setErrorCarga(null);
+      })
+      .catch((e) => {
+        if (activo) setErrorCarga({ claveConsulta, mensaje: e.message || "No se pudo cargar el catálogo." });
+      });
+    return () => { activo = false; };
+  }, [categoriaFiltro, searchFiltro, sortFiltro, claveConsulta]);
+
+  const cargando = resultado?.claveConsulta !== claveConsulta && errorCarga?.claveConsulta !== claveConsulta;
+  if (cargando) return <AureaLoader text="Cargando catálogo..." fullScreen />;
+  if (errorCarga?.claveConsulta === claveConsulta) {
+    return <p role="alert" className="px-6 py-16 text-center text-error">{errorCarga.mensaje}</p>;
+  }
+  const joyas = resultado?.claveConsulta === claveConsulta ? resultado.joyas : [];
+  const categorias = resultado?.claveConsulta === claveConsulta ? resultado.categorias : [];
 
   const setFiltro = (key, value) => {
     const params = new URLSearchParams(searchParams);
