@@ -2,25 +2,42 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { catalogoService } from "../services/catalogoService";
 import { useCart } from "../context/CartContext";
+import AureaLoader from "../components/AureaLoader";
 
 const fmt = new Intl.NumberFormat("es-AR");
 
 export default function ProductoDetalle() {
   const { id } = useParams();
-  const [joya, setJoya] = useState(null);
+  const [resultado, setResultado] = useState(null);
   const [opcion, setOpcion] = useState(null);
+  const [errorCarga, setErrorCarga] = useState(null);
   const { agregarItem } = useCart();
   const [agregado, setAgregado] = useState(false);
 
   useEffect(() => {
-    catalogoService.consultarJoya(id).then((j) => {
-      setJoya(j);
-      setOpcion(j?.opciones?.[0]);
-    });
+    let activo = true;
+    catalogoService.consultarJoya(id)
+      .then((j) => {
+        if (!activo) return;
+        setResultado({ id, joya: j });
+        setOpcion(j?.opciones?.[0]);
+        setErrorCarga(null);
+      })
+      .catch((e) => {
+        if (activo) setErrorCarga({ id, mensaje: e.message || "No se pudo cargar esta joya." });
+      });
+    return () => { activo = false; };
   }, [id]);
 
-  if (!joya) {
-    return <div className="px-6 lg:px-16 py-16 text-center text-on-surface-variant">Cargando joya…</div>;
+  const cargando = resultado?.id !== id && errorCarga?.id !== id;
+  if (cargando) return <AureaLoader text="Cargando joya..." fullScreen />;
+  const joya = resultado?.id === id ? resultado.joya : null;
+  if (errorCarga?.id === id || !joya) {
+    return (
+      <div role="alert" className="px-6 py-16 text-center text-error">
+        {errorCarga?.id === id ? errorCarga.mensaje : "No encontramos esta joya."}
+      </div>
+    );
   }
 
   return (

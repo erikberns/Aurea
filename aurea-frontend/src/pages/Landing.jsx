@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { catalogoService } from "../services/catalogoService";
 import ProductCard from "../components/ProductCard";
+import AureaLoader from "../components/AureaLoader";
 
 const fmt = new Intl.NumberFormat("es-AR");
 
@@ -269,7 +270,11 @@ export default function Landing() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {destacados === null && <p>Cargando productos...</p>}
+            {destacados === null && (
+              <div className="col-span-full">
+                <AureaLoader text="Cargando piezas destacadas..." />
+              </div>
+            )}
             {destacados?.length === 0 && <p>No hay productos disponibles para mostrar.</p>}
             {destacados?.map(joya => (
               <ProductCard key={joya.id} joya={joya} />

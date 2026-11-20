@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { usuariosService } from "../services/usuariosService";
 import { FormField, TextInput, PrimaryButton, SecondaryButton, Banner } from "../components/ui";
+import AureaLoader from "../components/AureaLoader";
 
 
 function TabPerfil({ usuario, onPerfilActualizado }) {
@@ -133,7 +134,7 @@ function TabPedidos() {
     });
   }, []);
 
-  if (loading) return <p className="text-on-surface-variant">Cargando tus pedidos...</p>;
+  if (loading) return <AureaLoader text="Cargando tus pedidos..." />;
   if (pedidos.length === 0) return <p className="text-on-surface-variant">Aún no tenés pedidos.</p>;
 
   return (
