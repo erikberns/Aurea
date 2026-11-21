@@ -19,9 +19,11 @@ import AdminPedidos from "./pages/admin/AdminPedidos";
 import AdminUsuarios from "./pages/admin/AdminUsuarios";
 import AdminReposiciones from "./pages/admin/AdminReposiciones";
 import AdminAvisos from "./pages/admin/AdminAvisos";
+import { ThemeProvider } from "./context/ThemeContext";
 
 export default function App() {
   return (
+    <ThemeProvider>
     <AuthProvider>
       <CartProvider>
         <Routes>
@@ -65,5 +67,6 @@ export default function App() {
         </Routes>
       </CartProvider>
     </AuthProvider>
+    </ThemeProvider>
   );
 }

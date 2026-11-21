@@ -1,4 +1,4 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -23,4 +23,135 @@
 
 body {
   font-family: "Plus Jakarta Sans", sans-serif;
+  background-color: rgb(var(--aurea-background));
+  color: rgb(var(--aurea-on-background));
 }
+
+:root {
+  --aurea-inverse-primary: 232 193 121;
+  --aurea-primary-container: 176 141 75;
+  --aurea-on-tertiary-fixed: 39 25 0;
+  --aurea-surface-variant: 233 225 220;
+  --aurea-tertiary-container: 180 140 63;
+  --aurea-secondary-fixed-dim: 238 189 147;
+  --aurea-surface-dim: 224 217 211;
+  --aurea-on-secondary-fixed: 45 22 0;
+  --aurea-tertiary: 122 88 12;
+  --aurea-surface-container: 244 236 231;
+  --aurea-on-primary-fixed-variant: 93 66 4;
+  --aurea-primary: 119 90 28;
+  --aurea-secondary-fixed: 255 220 192;
+  --aurea-on-error: 255 255 255;
+  --aurea-on-primary-fixed: 39 25 0;
+  --aurea-on-background: 30 27 24;
+  --aurea-surface-container-low: 250 242 237;
+  --aurea-on-secondary-fixed-variant: 97 63 31;
+  --aurea-surface-tint: 119 90 28;
+  --aurea-on-secondary: 255 255 255;
+  --aurea-error-container: 255 218 214;
+  --aurea-primary-fixed-dim: 232 193 121;
+  --aurea-surface: 255 248 244;
+  --aurea-on-tertiary-container: 59 40 0;
+  --aurea-tertiary-fixed: 255 222 167;
+  --aurea-surface-bright: 255 248 244;
+  --aurea-on-tertiary-fixed-variant: 94 66 0;
+  --aurea-surface-container-lowest: 255 255 255;
+  --aurea-on-secondary-container: 120 84 49;
+  --aurea-surface-container-high: 238 231 225;
+  --aurea-on-primary: 255 255 255;
+  --aurea-error: 186 26 26;
+  --aurea-secondary-container: 253 203 159;
+  --aurea-surface-container-highest: 233 225 220;
+  --aurea-on-surface: 30 27 24;
+  --aurea-on-error-container: 147 0 10;
+  --aurea-inverse-surface: 51 48 44;
+  --aurea-on-primary-container: 58 40 0;
+  --aurea-on-surface-variant: 78 70 57;
+  --aurea-secondary: 124 87 52;
+  --aurea-outline: 127 118 103;
+  --aurea-background: 255 248 244;
+  --aurea-primary-fixed: 255 222 166;
+  --aurea-outline-variant: 209 197 180;
+  --aurea-inverse-on-surface: 247 239 234;
+  --aurea-on-tertiary: 255 255 255;
+  --aurea-tertiary-fixed-dim: 237 192 109;
+}
+
+/* Paletas alternas: las clases de Tailwind consumen estos tokens en toda la app. */
+[data-theme="ciruela"] {
+  color-scheme: dark;
+  --aurea-primary: 218 174 224;
+  --aurea-primary-container: 91 58 99;
+  --aurea-on-primary: 48 25 53;
+  --aurea-on-primary-container: 247 218 250;
+  --aurea-primary-fixed: 247 218 250;
+  --aurea-primary-fixed-dim: 218 174 224;
+  --aurea-inverse-primary: 111 70 119;
+  --aurea-secondary: 210 184 207;
+  --aurea-secondary-container: 79 58 76;
+  --aurea-on-secondary: 43 31 42;
+  --aurea-on-secondary-container: 241 218 237;
+  --aurea-secondary-fixed: 239 221 183;
+  --aurea-secondary-fixed-dim: 211 194 158;
+  --aurea-tertiary: 232 185 173;
+  --aurea-tertiary-container: 104 62 55;
+  --aurea-on-tertiary: 51 27 23;
+  --aurea-on-tertiary-container: 255 221 213;
+  --aurea-tertiary-fixed: 255 221 213;
+  --aurea-tertiary-fixed-dim: 232 185 173;
+  --aurea-surface: 25 20 27;
+  --aurea-background: 25 20 27;
+  --aurea-surface-bright: 65 55 68;
+  --aurea-surface-container-lowest: 18 14 20;
+  --aurea-surface-container-low: 33 27 36;
+  --aurea-surface-container: 41 34 45;
+  --aurea-surface-container-high: 50 42 54;
+  --aurea-surface-container-highest: 60 51 64;
+  --aurea-surface-variant: 63 52 67;
+  --aurea-surface-dim: 20 16 23;
+  --aurea-on-surface: 240 231 241;
+  --aurea-on-background: 240 231 241;
+  --aurea-on-surface-variant: 207 192 210;
+  --aurea-outline: 151 132 155;
+  --aurea-outline-variant: 78 65 83;
+  --aurea-surface-tint: 218 174 224;
+}
+
+[data-theme="noche"] {
+  --aurea-primary: 55 91 132;
+  --aurea-primary-container: 94 132 174;
+  --aurea-on-primary: 255 255 255;
+  --aurea-on-primary-container: 14 35 59;
+  --aurea-primary-fixed: 205 226 255;
+  --aurea-primary-fixed-dim: 174 200 235;
+  --aurea-inverse-primary: 176 203 238;
+  --aurea-secondary: 111 91 127;
+  --aurea-secondary-container: 224 210 241;
+  --aurea-on-secondary: 255 255 255;
+  --aurea-on-secondary-container: 34 24 47;
+  --aurea-secondary-fixed: 224 210 241;
+  --aurea-secondary-fixed-dim: 198 184 215;
+  --aurea-tertiary: 130 81 83;
+  --aurea-tertiary-container: 173 117 119;
+  --aurea-on-tertiary: 255 255 255;
+  --aurea-on-tertiary-container: 54 21 23;
+  --aurea-tertiary-fixed: 255 218 217;
+  --aurea-tertiary-fixed-dim: 228 184 185;
+  --aurea-surface: 245 247 251;
+  --aurea-background: 245 247 251;
+  --aurea-surface-bright: 245 247 251;
+  --aurea-surface-container-lowest: 255 255 255;
+  --aurea-surface-container-low: 238 242 248;
+  --aurea-surface-container: 229 235 243;
+  --aurea-surface-container-high: 219 227 237;
+  --aurea-surface-container-highest: 210 219 230;
+  --aurea-surface-variant: 222 228 237;
+  --aurea-surface-dim: 211 220 231;
+  --aurea-on-surface: 25 29 36;
+  --aurea-on-background: 25 29 36;
+  --aurea-on-surface-variant: 67 75 88;
+  --aurea-outline: 112 124 140;
+  --aurea-outline-variant: 193 204 218;
+  --aurea-surface-tint: 55 91 132;
+}
+
