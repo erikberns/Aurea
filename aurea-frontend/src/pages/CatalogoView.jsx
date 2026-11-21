@@ -49,28 +49,62 @@ export default function CatalogoView({ joyas, categorias, categoriaFiltro, searc
               <h3 className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant mb-3">
                 Categoría
               </h3>
+
               <ul className="space-y-2 font-body-md text-body-md text-on-surface">
-                {categorias.map((c) => (
-                  <li 
-                    key={c} 
-                    className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
-                    onClick={() => {
-                      if (categoriaFiltro === c) {
-                        setFiltro("categoria", null);
-                      } else {
-                        setFiltro("categoria", c);
-                      }
-                    }}
-                  >
-                    <span
-                      className={`w-3.5 h-3.5 rounded-sm border ${
-                        categoriaFiltro === c ? "bg-primary-container border-primary-container" : "border-outline-variant"
-                      }`}
-                    />
-                    {c}
-                  </li>
-                ))}
+                {categorias.map((c) => {
+                  const seleccionada = categoriaFiltro === c;
+
+                  return (
+                    <li key={c}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFiltro("categoria", seleccionada ? null : c);
+                        }}
+                        aria-pressed={seleccionada}
+                        className={`w-full flex items-center gap-2 text-left transition-colors ${
+                          seleccionada
+                            ? "text-primary font-semibold"
+                            : "hover:text-primary"
+                        }`}
+                      >
+                        <span
+                          className={`w-3.5 h-3.5 shrink-0 rounded-sm border ${
+                            seleccionada
+                              ? "bg-primary-container border-primary-container"
+                              : "border-outline-variant"
+                          }`}
+                        />
+
+                        {c}
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
+
+              {categoriaFiltro && (
+                <div className="mt-4 p-3 bg-surface-container-low rounded-md">
+                  <p className="font-label-sm text-label-sm text-on-surface-variant mb-2">
+                    Categoría seleccionada:
+                  </p>
+
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-body-sm text-body-sm text-primary font-semibold">
+                      {categoriaFiltro}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => setFiltro("categoria", null)}
+                      className="text-primary hover:underline text-sm"
+                      aria-label="Quitar filtro de categoría"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </aside>
 
