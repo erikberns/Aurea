@@ -36,12 +36,14 @@ export default function CatalogoView({ joyas, categorias, categoriaFiltro, searc
                 <span className="material-symbols-outlined text-primary text-xl">tune</span>
                 Filtrar Colección
               </h2>
-              <span 
-                className="font-label-sm text-label-sm text-primary uppercase cursor-pointer hover:underline"
-                onClick={clearFiltros}
+              <button
+              type="button"
+              onClick={clearFiltros}
+              className="font-label-sm text-label-sm text-primary uppercase hover:underline cursor-pointer"
+              aria-label="Limpiar todos los filtros"
               >
                 Limpiar
-              </span>
+                </button>
             </div>
             <div>
               <h3 className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant mb-3">
