@@ -100,11 +100,36 @@ export default function CatalogoView({ joyas, categorias, categoriaFiltro, searc
                 <option value="desc">Precio: mayor a menor</option>
               </select>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {joyas.map((joya) => (
-                <ProductCard key={joya.id} joya={joya} />
-              ))}
-            </div>
+            {joyas.length > 0 ? (
+  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+    {joyas.map((joya) => (
+      <ProductCard key={joya.id} joya={joya} />
+    ))}
+  </div>
+) : (
+  <div className="flex flex-col items-center justify-center text-center py-16 px-6 bg-surface-container-low rounded-lg border border-outline-variant/30">
+    <span className="material-symbols-outlined text-5xl text-primary mb-4">
+      search_off
+    </span>
+
+    <h2 className="font-headline-sm text-xl text-on-surface mb-2">
+      No encontramos joyas
+    </h2>
+
+    <p className="font-body-md text-on-surface-variant max-w-md mb-6">
+      No hay productos que coincidan con tu búsqueda o los filtros seleccionados.
+      Probá modificando los criterios o explorando otras categorías.
+    </p>
+
+    <button
+      type="button"
+      onClick={clearFiltros}
+      className="px-6 py-2.5 bg-primary text-on-primary rounded-md font-label-md hover:opacity-90 transition-opacity"
+    >
+      Ver todas las joyas
+    </button>
+  </div>
+)}
           </div>
         </div>
       </div>
