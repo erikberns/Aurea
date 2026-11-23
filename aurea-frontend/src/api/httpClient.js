@@ -35,17 +35,18 @@ export async function httpRequest(path, { method = "GET", body } = {}) {
   if (path === "/usuarios/salir" && response.ok) {
     bearerToken = null;
   }
-  const data = response.headers.get("content-type")?.includes("application/json")
+  const contentType = response.headers.get("content-type") || "";
+  const data = contentType.includes("json")
     ? await response.json().catch(() => null) : null;
   if (!response.ok) {
     if (response.status === 401) {
       bearerToken = null;
       window.dispatchEvent(new Event("aurea:sesion-vencida"));
     }
-    if (response.status === 403 && !data?.mensaje) {
+    if (response.status === 403 && !data?.detail && !data?.mensaje) {
       throw new ApiError("No tenés permiso para realizar esta acción (403).", 403, data);
     }
-    throw new ApiError(data?.mensaje || data?.message || `Error ${response.status}`, response.status, data);
+    throw new ApiError(data?.detail || data?.mensaje || data?.message || `Error ${response.status}`, response.status, data);
   }
   return data;
 }

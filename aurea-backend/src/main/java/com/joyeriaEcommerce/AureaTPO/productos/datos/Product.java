@@ -59,6 +59,10 @@ public class Product {
         return id;
     }
 
+    public Integer getVersion() {
+        return version;
+    }
+
     public Boolean getActive() {
         return active;
     }

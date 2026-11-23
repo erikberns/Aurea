@@ -91,8 +91,9 @@ public class SecurityConfig {
                 CorsConfiguration configuration = new CorsConfiguration();
                 configuration.setAllowedOrigins(List.of(allowedOrigin));
                 configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "OPTIONS", "PUT", "DELETE"));
-                configuration.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-XSRF-TOKEN"));
-                configuration.setExposedHeaders(List.of("Authorization"));
+                configuration.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-XSRF-TOKEN",
+                                "Idempotency-Key", "If-None-Match", "If-Match"));
+                configuration.setExposedHeaders(List.of("Authorization", "ETag", "Idempotency-Replayed"));
                 configuration.setAllowCredentials(true);
 
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

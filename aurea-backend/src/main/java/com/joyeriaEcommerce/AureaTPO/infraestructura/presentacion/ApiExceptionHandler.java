@@ -1,95 +1,125 @@
 package com.joyeriaEcommerce.AureaTPO.infraestructura.presentacion;
 
+import com.joyeriaEcommerce.AureaTPO.pagos.negocio.PagoRechazadoException;
+import com.joyeriaEcommerce.AureaTPO.pagos.negocio.PasarelaNoDisponibleException;
+import com.joyeriaEcommerce.AureaTPO.reposiciones.negocio.ProveedorNoDisponibleException;
 import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.UsuarioExceptions.CredencialesInvalidasException;
 import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.UsuarioExceptions.EmailYaRegistradoException;
 import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.UsuarioExceptions.UsuarioNoEncontradoException;
+import jakarta.servlet.http.HttpServletRequest;
+import java.net.URI;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+/**
+ * Manejo centralizado de errores en formato Problem Details (RFC 9457, application/problem+json).
+ * Conserva las propiedades de extensión {@code mensaje} y {@code errores} por compatibilidad.
+ */
 @RestControllerAdvice
 public class ApiExceptionHandler {
-    @ExceptionHandler(com.joyeriaEcommerce.AureaTPO.pagos.negocio.PagoRechazadoException.class)
-    @ResponseStatus(HttpStatus.PAYMENT_REQUIRED)
-    ApiError pagoRechazado(com.joyeriaEcommerce.AureaTPO.pagos.negocio.PagoRechazadoException ex) {
-        return new ApiError(Instant.now(), 402, "Pago rechazado: " + ex.getMessage()
-                + " No se registró el pedido; el carrito se conserva.", Map.of());
+
+    private static final String TYPE_BASE = "https://aurea.local/problemas/";
+
+    @ExceptionHandler(PagoRechazadoException.class)
+    ResponseEntity<ProblemDetail> pagoRechazado(PagoRechazadoException ex, HttpServletRequest request) {
+        String detalle = "Pago rechazado: " + ex.getMessage()
+                + " No se registró el pedido; el carrito se conserva.";
+        return problem(HttpStatus.PAYMENT_REQUIRED, "pago-rechazado", "Pago rechazado", detalle, request, Map.of());
     }
 
-    @ExceptionHandler(com.joyeriaEcommerce.AureaTPO.pagos.negocio.PasarelaNoDisponibleException.class)
-    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    ApiError pasarelaNoDisponible(com.joyeriaEcommerce.AureaTPO.pagos.negocio.PasarelaNoDisponibleException ex) {
-        return new ApiError(Instant.now(), 503, ex.getMessage(), Map.of());
+    @ExceptionHandler(PasarelaNoDisponibleException.class)
+    ResponseEntity<ProblemDetail> pasarelaNoDisponible(PasarelaNoDisponibleException ex, HttpServletRequest request) {
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "pasarela-no-disponible",
+                "Pasarela de pago no disponible", ex.getMessage(), request, Map.of());
     }
 
-    @ExceptionHandler(com.joyeriaEcommerce.AureaTPO.reposiciones.negocio.ProveedorNoDisponibleException.class)
-    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    ApiError proveedorNoDisponible(com.joyeriaEcommerce.AureaTPO.reposiciones.negocio.ProveedorNoDisponibleException ex) {
-        return new ApiError(Instant.now(), 503, ex.getMessage(), Map.of());
+    @ExceptionHandler(ProveedorNoDisponibleException.class)
+    ResponseEntity<ProblemDetail> proveedorNoDisponible(ProveedorNoDisponibleException ex, HttpServletRequest request) {
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "proveedor-no-disponible",
+                "Proveedor externo no disponible", ex.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(EmailYaRegistradoException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    ApiError emailDuplicado(EmailYaRegistradoException exception) {
-        return new ApiError(Instant.now(), HttpStatus.CONFLICT.value(), exception.getMessage(), Map.of());
+    ResponseEntity<ProblemDetail> emailDuplicado(EmailYaRegistradoException ex, HttpServletRequest request) {
+        return problem(HttpStatus.CONFLICT, "email-duplicado", "Email ya registrado", ex.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(UsuarioNoEncontradoException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    ApiError usuarioNoEncontrado(UsuarioNoEncontradoException exception) {
-        return new ApiError(Instant.now(), HttpStatus.NOT_FOUND.value(), exception.getMessage(), Map.of());
+    ResponseEntity<ProblemDetail> usuarioNoEncontrado(UsuarioNoEncontradoException ex, HttpServletRequest request) {
+        return problem(HttpStatus.NOT_FOUND, "usuario-no-encontrado", "Usuario no encontrado", ex.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(CredencialesInvalidasException.class)
-    @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    ApiError credencialesInvalidas(CredencialesInvalidasException exception) {
-        return new ApiError(Instant.now(), HttpStatus.UNAUTHORIZED.value(), exception.getMessage(), Map.of());
+    ResponseEntity<ProblemDetail> credencialesInvalidas(CredencialesInvalidasException ex, HttpServletRequest request) {
+        return problem(HttpStatus.UNAUTHORIZED, "credenciales-invalidas", "Credenciales inválidas", ex.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    ApiError solicitudInvalida(IllegalArgumentException exception) {
-        return new ApiError(Instant.now(), HttpStatus.BAD_REQUEST.value(), exception.getMessage(), Map.of());
+    ResponseEntity<ProblemDetail> solicitudInvalida(IllegalArgumentException ex, HttpServletRequest request) {
+        return problem(HttpStatus.BAD_REQUEST, "solicitud-invalida", "Solicitud inválida", ex.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(SecurityException.class)
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    ApiError accesoDenegado(SecurityException exception) {
-        return new ApiError(Instant.now(), HttpStatus.FORBIDDEN.value(), exception.getMessage(), Map.of());
+    ResponseEntity<ProblemDetail> accesoDenegado(SecurityException ex, HttpServletRequest request) {
+        return problem(HttpStatus.FORBIDDEN, "acceso-denegado", "Acceso denegado", ex.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    ApiError validacion(MethodArgumentNotValidException exception) {
+    ResponseEntity<ProblemDetail> validacion(MethodArgumentNotValidException ex, HttpServletRequest request) {
         Map<String, String> errores = new LinkedHashMap<>();
-        for (FieldError error : exception.getBindingResult().getFieldErrors()) {
+        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
             errores.putIfAbsent(error.getField(), error.getDefaultMessage());
         }
-        return new ApiError(
-                Instant.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                "Los datos enviados no son validos",
-                errores);
+        return problem(HttpStatus.BAD_REQUEST, "error-validacion",
+                "Los datos enviados no son válidos", "Los datos enviados no son validos", request, errores);
     }
 
-    @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    ApiError concurrencia(org.springframework.orm.ObjectOptimisticLockingFailureException exception) {
-        return new ApiError(Instant.now(), HttpStatus.CONFLICT.value(), "El recurso fue modificado por otro usuario. Por favor, recargue la página.", Map.of());
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    ResponseEntity<ProblemDetail> concurrencia(ObjectOptimisticLockingFailureException ex, HttpServletRequest request) {
+        return problem(HttpStatus.CONFLICT, "conflicto-concurrencia", "Conflicto de concurrencia",
+                "El recurso fue modificado por otro usuario. Por favor, recargue la página.", request, Map.of());
     }
 
     @ExceptionHandler(IllegalStateException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    ApiError conflicto(IllegalStateException ex){return new ApiError(Instant.now(),409,ex.getMessage(),Map.of());}
-    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
-    @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    ApiError autenticacion(org.springframework.security.core.AuthenticationException ex){return new ApiError(Instant.now(),401,"Credenciales invalidas",Map.of());}
-    record ApiError(Instant timestamp, int status, String mensaje, Map<String, String> errores) {
+    ResponseEntity<ProblemDetail> conflicto(IllegalStateException ex, HttpServletRequest request) {
+        return problem(HttpStatus.CONFLICT, "conflicto-estado", "Conflicto de estado", ex.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    ResponseEntity<ProblemDetail> autenticacion(AuthenticationException ex, HttpServletRequest request) {
+        return problem(HttpStatus.UNAUTHORIZED, "autenticacion-requerida",
+                "Autenticación fallida", "Credenciales invalidas", request, Map.of());
+    }
+
+    private static ResponseEntity<ProblemDetail> problem(
+            HttpStatus status,
+            String slug,
+            String title,
+            String detail,
+            HttpServletRequest request,
+            Map<String, String> errores) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
+        pd.setType(URI.create(TYPE_BASE + slug));
+        pd.setTitle(title);
+        if (request != null && request.getRequestURI() != null) {
+            pd.setInstance(URI.create(request.getRequestURI()));
+        }
+        pd.setProperty("timestamp", Instant.now());
+        pd.setProperty("mensaje", detail);
+        pd.setProperty("errores", errores);
+        return ResponseEntity.status(status)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(pd);
     }
 }

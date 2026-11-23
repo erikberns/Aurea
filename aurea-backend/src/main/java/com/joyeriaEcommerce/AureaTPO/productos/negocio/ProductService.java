@@ -164,7 +164,8 @@ public class ProductService implements IProductos {
         CategoryDTO categoria = category == null ? null
                 : new CategoryDTO(category.getId(), category.getDescription());
         return new ProductDTO(product.getId(), product.getActive(), product.getDescription(),
-                product.getName(), product.getPrice(), product.getImageUrl(), product.getStock(), categoria);
+                product.getName(), product.getPrice(), product.getImageUrl(), product.getStock(), categoria,
+                product.getVersion());
     }
 
     private void validarPrecio(Double p){if(p==null||!Double.isFinite(p)||p<0) throw new IllegalArgumentException("Precio invalido");}
