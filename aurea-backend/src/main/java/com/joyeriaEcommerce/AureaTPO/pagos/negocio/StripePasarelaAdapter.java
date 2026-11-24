@@ -1,5 +1,6 @@
 package com.joyeriaEcommerce.AureaTPO.pagos.negocio;
 
+import com.joyeriaEcommerce.AureaTPO.infraestructura.resiliencia.CircuitBreaker;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,11 @@ import java.util.stream.Collectors;
 @Component
 @ConditionalOnProperty(name = "app.pagos.proveedor", havingValue = "stripe")
 public class StripePasarelaAdapter implements IPasarelaPago {
+    /** Tras 3 llamadas seguidas sin respuesta (o con 5xx), deja de llamar a Stripe durante 30 s. */
+    static final int FALLOS_PARA_ABRIR = 3;
+    static final Duration ESPERA_CIRCUITO_ABIERTO = Duration.ofSeconds(30);
+
+    private final CircuitBreaker circuito = new CircuitBreaker("stripe", FALLOS_PARA_ABRIR, ESPERA_CIRCUITO_ABIERTO);
     private final HttpClient client;
     private final String base;
     private final String claveSecreta;
@@ -116,6 +122,11 @@ public class StripePasarelaAdapter implements IPasarelaPago {
         }
     }
 
+    /** Estado del circuito hacia Stripe (para pruebas y diagnóstico). */
+    public CircuitBreaker.Estado estadoCircuito() {
+        return circuito.estado();
+    }
+
     private Respuesta enviar(String ruta, Map<String, String> form, String claveIdempotencia) {
         String cuerpo = form.entrySet().stream()
                 .map(e -> URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8) + "="
@@ -128,18 +139,39 @@ public class StripePasarelaAdapter implements IPasarelaPago {
                 .header("Idempotency-Key", claveIdempotencia)
                 .POST(HttpRequest.BodyPublishers.ofString(cuerpo))
                 .build();
+        long espera = circuito.permitir();
+        if (espera > 0) {
+            // Fallback: no se espera el timeout de una pasarela que viene fallando; se informa al instante.
+            throw new PasarelaNoDisponibleException("La pasarela de pago no está respondiendo, así que no se intentó "
+                    + "el cobro: la compra no se registró y su carrito se conservó. Puede reintentar en "
+                    + espera + " segundos.", null, espera);
+        }
+        HttpResponse<String> response;
         try {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (InterruptedException ex) {
+            circuito.registrarFallo();
+            Thread.currentThread().interrupt();
+            throw new PasarelaNoDisponibleException("La consulta a la pasarela de pago fue interrumpida", ex);
+        } catch (IOException ex) {
+            circuito.registrarFallo();
+            throw new PasarelaNoDisponibleException("La pasarela de pago no respondió a tiempo. La compra no se "
+                    + "registró y su carrito se conservó; puede reintentar.", ex);
+        } catch (RuntimeException ex) {
+            circuito.registrarFallo();
+            throw new PasarelaNoDisponibleException("No se pudo contactar a la pasarela de pago", ex);
+        }
+        // Un rechazo de tarjeta (402) es una respuesta válida; solo los 5xx cuentan como falla del sistema.
+        if (response.statusCode() >= 500) {
+            circuito.registrarFallo();
+        } else {
+            circuito.registrarExito();
+        }
+        try {
             String texto = response.body();
             Map<String, Object> datos = texto == null || texto.isBlank()
                     ? Map.of() : mapa(json.readValue(texto, Map.class));
             return new Respuesta(response.statusCode(), datos);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new PasarelaNoDisponibleException("La consulta a la pasarela de pago fue interrumpida", ex);
-        } catch (IOException ex) {
-            throw new PasarelaNoDisponibleException(
-                    "La pasarela de pago no respondió a tiempo. La compra no se registró; puede reintentar.", ex);
         } catch (RuntimeException ex) {
             throw new PasarelaNoDisponibleException("La pasarela de pago devolvió una respuesta ilegible", ex);
         }

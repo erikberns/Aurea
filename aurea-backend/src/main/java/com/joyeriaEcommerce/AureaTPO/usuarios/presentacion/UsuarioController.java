@@ -2,6 +2,7 @@ package com.joyeriaEcommerce.AureaTPO.usuarios.presentacion;
 
 import com.joyeriaEcommerce.AureaTPO.infraestructura.configuracion.IJwtService;
 import com.joyeriaEcommerce.AureaTPO.infraestructura.configuracion.JwtAuthenticationFilter;
+import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.ILimitadorIntentosLogin;
 import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.IUsuarios;
 import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.UsuarioDTO;
 import jakarta.servlet.http.Cookie;
@@ -16,6 +17,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -35,11 +37,14 @@ public class UsuarioController {
     private final IUsuarios usuarios;
     private final AuthenticationManager authenticationManager;
     private final IJwtService jwtService;
+    private final ILimitadorIntentosLogin limitador;
 
-    public UsuarioController(IUsuarios usuarios, AuthenticationManager authenticationManager, IJwtService jwtService) {
+    public UsuarioController(IUsuarios usuarios, AuthenticationManager authenticationManager, IJwtService jwtService,
+                             ILimitadorIntentosLogin limitador) {
         this.usuarios = usuarios;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
+        this.limitador = limitador;
     }
 
     @PostMapping
@@ -63,9 +68,19 @@ public class UsuarioController {
             @Valid @RequestBody AutenticarRequest requestBody,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
-        Authentication auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(requestBody.email().trim(), requestBody.contrasena())
-        );
+        String email = requestBody.email().trim();
+        // Detrás de nginx, getRemoteAddr() es la IP real del cliente (server.forward-headers-strategy=native).
+        String origen = httpRequest.getRemoteAddr();
+        limitador.verificar(email, origen); // 429 si se superó el límite de intentos fallidos
+        Authentication auth;
+        try {
+            auth = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, requestBody.contrasena()));
+        } catch (AuthenticationException ex) {
+            limitador.registrarFallo(email, origen);
+            throw ex;
+        }
+        limitador.registrarExito(email);
         guardarSesionYEmitirJwt(auth, httpRequest, httpResponse);
 
         return usuarios.autenticar(requestBody.toCredenciales());

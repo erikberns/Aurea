@@ -2,6 +2,7 @@ package com.joyeriaEcommerce.AureaTPO.carrito;
 
 import com.joyeriaEcommerce.AureaTPO.carrito.negocio.ServicioDeCarrito;
 import com.joyeriaEcommerce.AureaTPO.productos.negocio.IProductos;
+import com.joyeriaEcommerce.AureaTPO.ordenes.datos.EventoPedidoPendienteRepository;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderRepository;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ class CarritoHttpTests {
  @Autowired WebApplicationContext context;
  @Autowired IProductos productos;
  @Autowired OrderRepository ordenes;
+ @Autowired EventoPedidoPendienteRepository outbox;
  MockMvc mvc;
  @BeforeEach void setup(){mvc=MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();}
  org.springframework.test.web.servlet.request.RequestPostProcessor token() throws Exception {
@@ -90,6 +92,16 @@ class CarritoHttpTests {
   mvc.perform(post("/api/carrito/checkout").session(a).with(token()).contentType("application/json")
    .content("{\"direccion\":\"Calle 123\",\"metodoPago\":\"VISA_APROBADA\"}")).andExpect(status().isBadRequest());
  }
+ @Test void laCompraGuardaElAvisoDelPedidoEnElOutboxDentroDeLaMismaTransaccion() throws Exception {
+  long id=producto(); MockHttpSession a=sesion(); registrar(a); agregar(a,id,1);
+  String respuesta=mvc.perform(post("/api/carrito/checkout").session(a).with(token()).contentType("application/json")
+   .content("{\"direccion\":\"Calle 123\",\"metodoPago\":\"VISA_APROBADA\"}"))
+   .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+  Number pedido=JsonPath.read(respuesta,"$.id");
+  var evento=outbox.findById("pedido-"+pedido.longValue()+"-confirmado").orElseThrow();
+  assertThat(evento.payload).isEqualTo(String.valueOf(pedido.longValue()));
+  assertThat(evento.publicado).as("lo publica el scheduler cuando el broker confirma").isNull();
+ }
  @Test void cambiarDeCuentaDestruyeElCarritoDeLaSesionAnterior() throws Exception {
   MockHttpSession anterior=sesion(); registrar(anterior); agregar(anterior,producto(),1);
   ServicioDeCarrito carritoAnterior=(ServicioDeCarrito)anterior.getAttribute("scopedTarget.servicioDeCarrito");
@@ -105,10 +117,11 @@ class CarritoHttpTests {
  }
  @Test void fallaDeStockConservaSeleccionSinPedido() throws Exception {
   long id=producto(); MockHttpSession a=sesion(); registrar(a); agregar(a,id,2); productos.updateStock(id,1);
-  long antes=ordenes.count();
+  long antes=ordenes.count(), eventosAntes=outbox.count();
   mvc.perform(post("/api/carrito/checkout").session(a).with(token()).contentType("application/json")
    .content("{\"direccion\":\"Calle 123\",\"metodoPago\":\"VISA_APROBADA\"}")).andExpect(status().isConflict());
   assertThat(ordenes.count()).isEqualTo(antes);
+  assertThat(outbox.count()).as("si la compra se revierte, el aviso tampoco queda").isEqualTo(eventosAntes);
   assertThat(productos.getProductById(id).stock()).isEqualTo(1);
   mvc.perform(get("/api/carrito").session(a)).andExpect(jsonPath("$.cantidadTotal").value(2));
  }

@@ -1,5 +1,7 @@
 package com.joyeriaEcommerce.AureaTPO.ordenes.negocio;
 
+import com.joyeriaEcommerce.AureaTPO.ordenes.datos.EventoPedidoPendiente;
+import com.joyeriaEcommerce.AureaTPO.ordenes.datos.EventoPedidoPendienteRepository;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.Order;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderRepository;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.OrderStatus;
@@ -20,13 +22,15 @@ public class OrderService implements IPedidos {
     private final ApplicationEventPublisher eventPublisher;
     private final IUsuarios usuarios;
     private final IProductos productos;
+    private final EventoPedidoPendienteRepository outbox;
 
     public OrderService(OrderRepository orderRepository, ApplicationEventPublisher eventPublisher,
-                        IUsuarios usuarios, IProductos productos) {
+                        IUsuarios usuarios, IProductos productos, EventoPedidoPendienteRepository outbox) {
         this.orderRepository = orderRepository;
         this.eventPublisher = eventPublisher;
         this.usuarios = usuarios;
         this.productos = productos;
+        this.outbox = outbox;
     }
 
     @Override
@@ -51,6 +55,9 @@ public class OrderService implements IPedidos {
         }
         // Contrato de evento, síncrono: un fallo de stock revierte la confirmación.
         eventPublisher.publishEvent(new OrderConfirmedEvent(saved.getId(), cantidades, saved.getUserId()));
+        // Outbox: el aviso para el procesamiento asíncrono se guarda en esta misma transacción.
+        // Si la compra se revierte, el aviso también; si el broker está caído, se publica cuando vuelva.
+        outbox.save(new EventoPedidoPendiente(idEventoConfirmado(saved.getId()), saved.getId().toString()));
         return toDTO(saved);
     }
 
@@ -99,5 +106,10 @@ public class OrderService implements IPedidos {
                 .toList();
         return new OrderDTO(order.getId(), order.getShippingAddress(), order.getOrderDate(),
                 order.getStatus().name(), order.getTotal(), items, usuarios.consultarPerfil(order.getUserId()));
+    }
+
+    /** Identificador estable del evento: un pedido se confirma una sola vez (patrón State). */
+    static String idEventoConfirmado(Long orderId) {
+        return "pedido-" + orderId + "-confirmado";
     }
 }

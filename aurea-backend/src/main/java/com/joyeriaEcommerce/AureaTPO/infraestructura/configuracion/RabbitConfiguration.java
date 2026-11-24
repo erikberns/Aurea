@@ -8,8 +8,10 @@ import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Configuration
+@EnableScheduling // publica periódicamente el outbox de pedidos
 @ConditionalOnProperty(name = "app.messaging.order-processing.enabled", havingValue = "true", matchIfMissing = true)
 public class RabbitConfiguration {
     public static final String ORDERS_EXCHANGE = "aurea.orders";

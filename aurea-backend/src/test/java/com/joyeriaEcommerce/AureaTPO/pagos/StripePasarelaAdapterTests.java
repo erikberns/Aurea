@@ -1,5 +1,6 @@
 package com.joyeriaEcommerce.AureaTPO.pagos;
 
+import com.joyeriaEcommerce.AureaTPO.infraestructura.resiliencia.CircuitBreaker;
 import com.joyeriaEcommerce.AureaTPO.pagos.negocio.PasarelaNoDisponibleException;
 import com.joyeriaEcommerce.AureaTPO.pagos.negocio.ResultadoPasarelaDTO;
 import com.joyeriaEcommerce.AureaTPO.pagos.negocio.StripePasarelaAdapter;
@@ -43,6 +44,9 @@ class StripePasarelaAdapterTests {
                 json = "{\"error\":{\"type\":\"card_error\",\"code\":\"card_declined\","
                         + "\"decline_code\":\"insufficient_funds\",\"message\":\"Your card has insufficient funds.\","
                         + "\"payment_intent\":{\"id\":\"pi_rechazado\",\"status\":\"requires_payment_method\"}}}";
+            } else if (cuerpo.contains("pm_card_pasarela_caida")) {
+                status = 503;
+                json = "{\"error\":{\"type\":\"api_error\",\"message\":\"Service unavailable\"}}";
             } else if (cuerpo.contains("currency=xxx")) {
                 status = 400;
                 json = "{\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Invalid currency: xxx\"}}";
@@ -127,6 +131,33 @@ class StripePasarelaAdapterTests {
                 JsonMapper.builder().build());
         assertThatThrownBy(() -> adapter.autorizar("clave-caida", 1000, "ars", "pm_card_visa", 10L))
                 .isInstanceOf(PasarelaNoDisponibleException.class);
+    }
+
+    @Test
+    void trasTresErroresSeguidosElCircuitoSeAbreYNoVuelveALlamarAStripe() {
+        var adapter = adapter();
+        for (int i = 0; i < 3; i++) {
+            assertThatThrownBy(() -> adapter.autorizar("clave-503", 1000, "ars", "pm_card_pasarela_caida", 11L))
+                    .isInstanceOf(PasarelaNoDisponibleException.class);
+        }
+        assertThat(adapter.estadoCircuito()).isEqualTo(CircuitBreaker.Estado.ABIERTO);
+        assertThatThrownBy(() -> adapter.autorizar("clave-siguiente", 1000, "ars", "pm_card_visa", 12L))
+                .isInstanceOfSatisfying(PasarelaNoDisponibleException.class, ex -> {
+                    assertThat(ex.getSegundosParaReintentar()).isPositive();
+                    assertThat(ex.getMessage()).contains("carrito se conservó");
+                });
+        assertThat(solicitudes).as("con el circuito abierto no se envía la cuarta solicitud").hasSize(3);
+    }
+
+    @Test
+    void losRechazosDeTarjetaNoAbrenElCircuito() {
+        var adapter = adapter();
+        for (int i = 0; i < 5; i++) {
+            ResultadoPasarelaDTO resultado = adapter.autorizar("clave-rechazo-" + i, 1000, "ars",
+                    "pm_card_chargeDeclinedInsufficientFunds", 13L);
+            assertThat(resultado.aprobado()).isFalse();
+        }
+        assertThat(adapter.estadoCircuito()).isEqualTo(CircuitBreaker.Estado.CERRADO);
     }
 
     @Test

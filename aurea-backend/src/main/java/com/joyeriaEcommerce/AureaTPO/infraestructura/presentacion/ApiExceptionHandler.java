@@ -4,6 +4,7 @@ import com.joyeriaEcommerce.AureaTPO.pagos.negocio.PagoRechazadoException;
 import com.joyeriaEcommerce.AureaTPO.pagos.negocio.PasarelaNoDisponibleException;
 import com.joyeriaEcommerce.AureaTPO.reposiciones.negocio.ProveedorNoDisponibleException;
 import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.UsuarioExceptions.CredencialesInvalidasException;
+import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.UsuarioExceptions.DemasiadosIntentosException;
 import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.UsuarioExceptions.EmailYaRegistradoException;
 import com.joyeriaEcommerce.AureaTPO.usuarios.negocio.UsuarioExceptions.UsuarioNoEncontradoException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,6 +12,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -40,14 +42,14 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(PasarelaNoDisponibleException.class)
     ResponseEntity<ProblemDetail> pasarelaNoDisponible(PasarelaNoDisponibleException ex, HttpServletRequest request) {
-        return problem(HttpStatus.SERVICE_UNAVAILABLE, "pasarela-no-disponible",
-                "Pasarela de pago no disponible", ex.getMessage(), request, Map.of());
+        return conReintento(problem(HttpStatus.SERVICE_UNAVAILABLE, "pasarela-no-disponible",
+                "Pasarela de pago no disponible", ex.getMessage(), request, Map.of()), ex.getSegundosParaReintentar());
     }
 
     @ExceptionHandler(ProveedorNoDisponibleException.class)
     ResponseEntity<ProblemDetail> proveedorNoDisponible(ProveedorNoDisponibleException ex, HttpServletRequest request) {
-        return problem(HttpStatus.SERVICE_UNAVAILABLE, "proveedor-no-disponible",
-                "Proveedor externo no disponible", ex.getMessage(), request, Map.of());
+        return conReintento(problem(HttpStatus.SERVICE_UNAVAILABLE, "proveedor-no-disponible",
+                "Proveedor externo no disponible", ex.getMessage(), request, Map.of()), ex.getSegundosParaReintentar());
     }
 
     @ExceptionHandler(EmailYaRegistradoException.class)
@@ -63,6 +65,12 @@ public class ApiExceptionHandler {
     @ExceptionHandler(CredencialesInvalidasException.class)
     ResponseEntity<ProblemDetail> credencialesInvalidas(CredencialesInvalidasException ex, HttpServletRequest request) {
         return problem(HttpStatus.UNAUTHORIZED, "credenciales-invalidas", "Credenciales inválidas", ex.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(DemasiadosIntentosException.class)
+    ResponseEntity<ProblemDetail> demasiadosIntentos(DemasiadosIntentosException ex, HttpServletRequest request) {
+        return conReintento(problem(HttpStatus.TOO_MANY_REQUESTS, "demasiados-intentos",
+                "Demasiados intentos", ex.getMessage(), request, Map.of()), ex.getSegundosParaReintentar());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -100,6 +108,21 @@ public class ApiExceptionHandler {
     ResponseEntity<ProblemDetail> autenticacion(AuthenticationException ex, HttpServletRequest request) {
         return problem(HttpStatus.UNAUTHORIZED, "autenticacion-requerida",
                 "Autenticación fallida", "Credenciales invalidas", request, Map.of());
+    }
+
+    /** Agrega Retry-After (RFC 9110) y la misma espera como propiedad del Problem Details. */
+    private static ResponseEntity<ProblemDetail> conReintento(ResponseEntity<ProblemDetail> respuesta, long segundos) {
+        if (segundos <= 0) {
+            return respuesta;
+        }
+        ProblemDetail cuerpo = respuesta.getBody();
+        if (cuerpo != null) {
+            cuerpo.setProperty("reintentarEnSegundos", segundos);
+        }
+        return ResponseEntity.status(respuesta.getStatusCode())
+                .headers(respuesta.getHeaders())
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(segundos))
+                .body(cuerpo);
     }
 
     private static ResponseEntity<ProblemDetail> problem(
