@@ -3,16 +3,94 @@ name: CI
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+
+# Si llega un push nuevo a la misma rama, se cancela la corrida anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   backend:
-    name: Backend (Maven + JaCoCo)
+    name: Backend (Maven + JaCoCo + Sonar)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: aurea-backend
+    env:
+      # Sonar corre solo si el secreto SONAR_TOKEN está configurado en el repositorio.
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Sonar necesita el historial para atribuir el código nuevo
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Ejecutar pruebas y generar cobertura (JaCoCo)
+        run: sh ./mvnw -B verify
+
+      - name: Resumen de cobertura
+        if: always()
+        run: |
+          csv=target/site/jacoco/jacoco.csv
+          if [ ! -f "$csv" ]; then echo "No se generó el reporte de JaCoCo." >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          # Columnas de jacoco.csv: 2=paquete, 6/7=ramas perdidas/cubiertas, 8/9=líneas perdidas/cubiertas.
+          awk -F',' '
+            function pct(c, m) { return (c + m) > 0 ? sprintf("%.1f %%", 100 * c / (c + m)) : "sin datos" }
+            NR > 1 {
+              lm += $8; lc += $9; bm += $6; bc += $7
+              if ($2 ~ /\.negocio/) { nlm += $8; nlc += $9; nbm += $6; nbc += $7 }
+            }
+            END {
+              print "### Cobertura (JaCoCo)"
+              print ""
+              print "| Alcance | Líneas | Ramas |"
+              print "| --- | --- | --- |"
+              print "| Capa de negocio (paquetes `negocio`) | " pct(nlc, nlm) " | " pct(nbc, nbm) " |"
+              print "| Todo el backend | " pct(lc, lm) " | " pct(bc, bm) " |"
+              print ""
+              print "Objetivo de la entrega final para la capa de negocio: 80 % de líneas y 70 % de ramas."
+            }' "$csv" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Análisis estático con SonarCloud
+        if: env.SONAR_TOKEN != ''
+        run: >
+          sh ./mvnw -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+          -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+          -Dsonar.qualitygate.wait=true
+
+      - name: Subir reportes de pruebas y cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-reportes
+          path: |
+            aurea-backend/target/site/jacoco/
+            aurea-backend/target/surefire-reports/
+
+  proveedor-soap:
+    name: Proveedor SOAP (Maven)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: proveedor-soap
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,27 +102,13 @@ jobs:
           java-version: '25'
           cache: maven
 
-      - name: Ejecutar pruebas y generar cobertura (JaCoCo)
-        run: ./mvnw -B test jacoco:report
-
-      - name: Resumen de cobertura parcial
-        if: always()
-        run: |
-          if [ -f target/site/jacoco/jacoco.csv ]; then
-            echo "### Reporte de cobertura parcial (JaCoCo)" >> $GITHUB_STEP_SUMMARY
-            awk -F',' 'NR>1 { missed+=$4; covered+=$5 } END { total=missed+covered; if (total>0) printf "- **Instrucciones cubiertas:** %d / %d (**%.2f%%**)\n", covered, total, (covered/total)*100 }' target/site/jacoco/jacoco.csv >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Subir reporte de cobertura JaCoCo
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: jacoco-coverage-report
-          path: aurea-backend/target/site/jacoco/
+      - name: Ejecutar pruebas del proveedor
+        run: mvn -B verify
 
   frontend:
     name: Frontend (Lint + Build)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: aurea-frontend
@@ -67,3 +131,91 @@ jobs:
 
       - name: Compilar bundle de producción
         run: npm run build
+
+  sistema-completo:
+    name: Sistema completo (docker compose, G1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [ backend, proveedor-soap, frontend ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Comprobar que sin .env el arranque se corta con un mensaje claro
+        run: |
+          if docker compose config > /dev/null 2> salida.txt; then
+            echo "docker compose arrancó sin .env: las variables obligatorias no se están validando."; exit 1
+          fi
+          grep -q "Falta" salida.txt || { echo "El error no indica qué variable falta:"; cat salida.txt; exit 1; }
+          echo "Correcto: el arranque se corta e indica la variable que falta."
+
+      - name: Crear un .env temporal con valores aleatorios
+        # Los valores se generan en cada corrida y nunca se imprimen.
+        run: |
+          {
+            echo "DB_USERNAME=aurea_ci"
+            echo "DB_PASSWORD=$(openssl rand -hex 16)"
+            echo "RABBITMQ_USERNAME=aurea_ci"
+            echo "RABBITMQ_PASSWORD=$(openssl rand -hex 16)"
+            echo "JWT_SECRET=$(openssl rand -hex 32)"
+            echo "ADMIN_EMAIL=admin@aurea.com"
+            echo "ADMIN_PASSWORD=$(openssl rand -hex 16)"
+            echo "PAGOS_PROVEEDOR=simulado"
+            echo "STRIPE_SECRET_KEY="
+          } > .env
+
+      - name: Construir y levantar con un solo comando
+        run: docker compose up --build -d
+
+      - name: Esperar a que el backend esté listo
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/actuator/health | grep -q '"UP"'; then echo "Backend listo."; exit 0; fi
+            sleep 5
+          done
+          echo "El backend no respondió en 5 minutos."; exit 1
+
+      - name: Pruebas de humo
+        run: |
+          falla() { echo "FALLA: $1"; exit 1; }
+          curl -fsS http://localhost:5173/ | grep -q 'id="root"' || falla "el frontend no se sirve por nginx"
+          echo "Frontend servido por nginx."
+          curl -fsS http://localhost:5173/api/productos | grep -q '"name"' || falla "la API no responde a través del proxy o el catálogo está vacío"
+          echo "API alcanzada a través del proxy, con el catálogo cargado."
+          curl -fsS "http://localhost:8091/soap/proveedor?wsdl" | grep -q 'definitions' || falla "el WSDL del proveedor no está publicado"
+          echo "WSDL del proveedor publicado."
+
+      - name: Logs de los servicios si algo falló
+        if: failure()
+        run: docker compose logs --no-color --tail=200
+
+      - name: Bajar el entorno
+        if: always()
+        run: docker compose down -v
+
+  secretos:
+    name: Secretos en el historial (gitleaks, G6)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # TEMPORAL: informa sin romper el pipeline mientras el equipo decide cómo resolver G6.
+    # Quitar esta línea una vez limpio el historial o documentadas las excepciones.
+    continue-on-error: true
+    steps:
+      - name: Checkout con todo el historial
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Escanear todos los commits
+        # --redact oculta el valor de cualquier secreto encontrado en el log.
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest \
+            detect --source /repo --redact --verbose --report-format json --report-path /repo/gitleaks-report.json
+
+      - name: Subir el reporte de gitleaks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-reporte
+          path: gitleaks-report.json
+          if-no-files-found: ignore
