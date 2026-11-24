@@ -1,0 +1,85 @@
+# Áurea Joyas: sistema completo (base, broker, proveedor SOAP, backend y frontend).
+# Antes del primer arranque: copiar .env.example como .env y completar las variables.
+# Arranque: docker compose up --build
+name: aurea
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: aurea
+      POSTGRES_USER: ${DB_USERNAME:?Falta DB_USERNAME en .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD en .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d aurea"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:?Falta RABBITMQ_USERNAME en .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Falta RABBITMQ_PASSWORD en .env}
+    ports:
+      - "15672:15672"   # Consola de administración de RabbitMQ
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # Sistema externo legado: proveedor mayorista con SOAP 1.1 y WSDL.
+  proveedor-soap:
+    build: ./proveedor-soap
+    environment:
+      PROVEEDOR_ENDPOINT: http://0.0.0.0:8091/soap/proveedor
+    ports:
+      - "8091:8091"     # WSDL: http://localhost:8091/soap/proveedor?wsdl
+    volumes:
+      - proveedor-data:/app/data
+
+  backend:
+    build: ./aurea-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      proveedor-soap:
+        condition: service_started
+    restart: on-failure
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/aurea
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DDL_AUTO: update
+      JWT_SECRET: ${JWT_SECRET:?Falta JWT_SECRET en .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@aurea.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Falta ADMIN_PASSWORD en .env}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      PROVEEDOR_SOAP_URL: http://proveedor-soap:8091/soap/proveedor
+      CORS_ALLOWED_ORIGIN: http://localhost:5173
+      PAGOS_PROVEEDOR: ${PAGOS_PROVEEDOR:-simulado}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+    ports:
+      - "8080:8080"     # API REST: http://localhost:8080/api
+
+  frontend:
+    build: ./aurea-frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"       # Tienda y panel: http://localhost:5173
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+  proveedor-data:

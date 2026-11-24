@@ -34,8 +34,13 @@ public class JwtService implements IJwtService {
     private final Set<String> revokedTokens = ConcurrentHashMap.newKeySet();
 
     public JwtService(
-            @Value("${app.jwt.secret:***REMOVED***}") String secret,
+            @Value("${app.jwt.secret}") String secret,
             @Value("${app.jwt.expiration-seconds:900}") long expirationSeconds) {
+        // La clave llega solo por configuración (variable JWT_SECRET); nunca está escrita en el código.
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException(
+                    "JWT_SECRET debe tener al menos 32 caracteres para firmar con HS256");
+        }
         this.secretBytes = secret.getBytes(StandardCharsets.UTF_8);
         this.expirationSeconds = expirationSeconds;
     }

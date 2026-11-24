@@ -84,6 +84,9 @@ class StripePasarelaAdapterTests {
         assertThat(solicitud.idempotencia()).isEqualTo("aurea-orden-7-autorizacion");
         assertThat(solicitud.cuerpo()).contains("amount=1450000", "currency=ars", "payment_method=pm_card_visa",
                 "capture_method=manual", "confirm=true", "metadata%5Borden_id%5D=7");
+        assertThat(solicitud.cuerpo()).contains("allowed_payment_method_types%5B%5D=card");
+        assertThat(solicitud.cuerpo().split("&"))
+                .noneMatch(parametro -> parametro.startsWith("payment_method_types"));
     }
 
     @Test

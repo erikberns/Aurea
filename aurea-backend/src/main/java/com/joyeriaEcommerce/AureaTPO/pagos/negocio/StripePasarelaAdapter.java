@@ -60,7 +60,7 @@ public class StripePasarelaAdapter implements IPasarelaPago {
         form.put("amount", String.valueOf(montoCentavos));
         form.put("currency", moneda);
         form.put("payment_method", metodoPago);
-        form.put("payment_method_types[]", "card");
+        form.put("allowed_payment_method_types[]", "card");
         form.put("capture_method", "manual"); // Solo retiene: se cobra después del commit.
         form.put("confirm", "true");
         form.put("description", "Áurea Joyas - orden " + ordenId);

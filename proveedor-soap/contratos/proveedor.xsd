@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?><!-- Published by XML-WS Runtime (https://github.com/eclipse-ee4j/metro-jax-ws). Runtime's version is XML-WS Runtime 4.0.3 git-revision#a57c222. --><xs:schema xmlns:tns="urn:aurea:proveedor:v1" xmlns:xs="http://www.w3.org/2001/XMLSchema" version="1.0" targetNamespace="urn:aurea:proveedor:v1">
+
+<xs:element name="consultarDisponibilidad" type="tns:consultarDisponibilidad"></xs:element>
+
+<xs:element name="consultarDisponibilidadResponse" type="tns:consultarDisponibilidadResponse"></xs:element>
+
+<xs:element name="consultarEstado" type="tns:consultarEstado"></xs:element>
+
+<xs:element name="consultarEstadoResponse" type="tns:consultarEstadoResponse"></xs:element>
+
+<xs:element name="solicitarReposicion" type="tns:solicitarReposicion"></xs:element>
+
+<xs:element name="solicitarReposicionResponse" type="tns:solicitarReposicionResponse"></xs:element>
+
+<xs:complexType name="consultarEstado">
+<xs:sequence>
+<xs:element name="idSolicitud" type="xs:string" minOccurs="0"></xs:element>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="consultarEstadoResponse">
+<xs:sequence>
+<xs:element name="resultado" type="tns:ResultadoProveedor" minOccurs="0"></xs:element>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="ResultadoProveedor">
+<xs:sequence>
+<xs:element name="idSolicitud" type="xs:string" minOccurs="0"></xs:element>
+<xs:element name="codigoProducto" type="xs:string" minOccurs="0"></xs:element>
+<xs:element name="cantidad" type="xs:int"></xs:element>
+<xs:element name="estado" type="xs:string" minOccurs="0"></xs:element>
+<xs:element name="disponibles" type="xs:int"></xs:element>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="solicitarReposicion">
+<xs:sequence>
+<xs:element name="idSolicitud" type="xs:string" minOccurs="0"></xs:element>
+<xs:element name="codigoProducto" type="xs:string" minOccurs="0"></xs:element>
+<xs:element name="cantidad" type="xs:int"></xs:element>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="solicitarReposicionResponse">
+<xs:sequence>
+<xs:element name="resultado" type="tns:ResultadoProveedor" minOccurs="0"></xs:element>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="consultarDisponibilidad">
+<xs:sequence>
+<xs:element name="codigoProducto" type="xs:string" minOccurs="0"></xs:element>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="consultarDisponibilidadResponse">
+<xs:sequence>
+<xs:element name="resultado" type="tns:ResultadoProveedor" minOccurs="0"></xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:schema>

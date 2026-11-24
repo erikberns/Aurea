@@ -6,7 +6,7 @@ Aplicación React + Spring Boot + JPA/PostgreSQL. Componentes: Usuarios, Carrito
 
 La pantalla ADMIN `/admin/reposiciones` permite solicitar mercadería al proveedor SOAP externo y registrar su recepción. Una outbox publica ReposicionRecibida a RabbitMQ; inventario y avisos administrativos tienen suscripciones independientes. Aceptar la solicitud no aumenta stock: lo hace el consumidor al recibir el evento.
 
-El proveedor vive en `../ProveedorSOAP/`, fuera de este repositorio, con su propio Maven, WSDL y almacenamiento. Ver [arranque, contratos y pruebas](docs/reposiciones-soap-mensajeria.md). Para bases con `DDL_AUTO=validate`, aplicar [las tablas nuevas](docs/sql/002_reposiciones.sql) antes de arrancar.
+El proveedor vive en `proveedor-soap/`: está versionado en este repositorio pero es un proyecto independiente, con su propio Maven, WSDL, almacenamiento, proceso y contenedor. Ver [arranque, contratos y pruebas](docs/reposiciones-soap-mensajeria.md). Para bases con `DDL_AUTO=validate`, aplicar [las tablas nuevas](docs/sql/002_reposiciones.sql) antes de arrancar.
 
 ## Panel de administración
 
@@ -38,9 +38,60 @@ STRIPE_SECRET_KEY=sk_test_...
 
 Solo se aceptan claves `sk_test_`. Los pagos aparecen en el panel de Stripe (modo Test > Payments). Para bases con `DDL_AUTO=validate`, aplicar [la tabla de pagos](docs/sql/003_pagos.sql).
 
-## Ejecución
+## Levantar el sistema completo con Docker
 
-Backend: JDK 25 (LTS), Maven y Docker Compose. Copiar `aurea-backend/.env.example` como `aurea-backend/.env` y completar los datos reales de PostgreSQL. `DB_URL` debe comenzar con `jdbc:postgresql://`; no colocar comillas alrededor de los valores, porque Spring importa el archivo como propiedades Java. `DDL_AUTO=validate` comprueba el esquema; `update` permite crearlo o actualizarlo en desarrollo. El lanzador de VS Code y Maven deben ejecutarse desde `aurea-backend` y usar ese mismo `.env`. Iniciar RabbitMQ desde `aurea-backend` con `docker compose up -d rabbitmq`, y luego:
+Es la forma recomendada para probar el proyecto sin instalar Java, Maven ni Node. Solo se necesita Docker Desktop (o Docker Engine con Compose v2). Un único comando levanta las seis piezas: PostgreSQL, RabbitMQ, el proveedor SOAP, el backend, el frontend y el proxy web.
+
+1. Clonar el repositorio y entrar en la carpeta raíz `Aurea/`.
+2. Copiar el archivo de ejemplo de variables:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   En Windows PowerShell: `Copy-Item .env.example .env`.
+3. Abrir `.env` y completar estos valores (no usar comillas):
+
+   | Variable | Qué poner |
+   |---|---|
+   | `DB_USERNAME` / `DB_PASSWORD` | Usuario y contraseña que se crearán en PostgreSQL. Pueden ser cualquiera. |
+   | `RABBITMQ_USERNAME` / `RABBITMQ_PASSWORD` | Usuario y contraseña que se crearán en RabbitMQ. |
+   | `JWT_SECRET` | Una frase cualquiera de **al menos 32 caracteres**. |
+   | `ADMIN_PASSWORD` | Contraseña del administrador inicial. |
+   | `ADMIN_EMAIL` | Opcional. Por defecto `admin@aurea.com`. |
+   | `PAGOS_PROVEEDOR` | Dejar `simulado`. Para usar Stripe en modo de prueba, poner `stripe` y completar `STRIPE_SECRET_KEY` con una clave `sk_test_`. |
+
+4. Levantar todo:
+
+   ```bash
+   docker compose up --build
+   ```
+
+   La primera vez descarga imágenes y dependencias (unos minutos). Si falta el `.env` o alguna variable obligatoria, Compose se detiene antes de arrancar e indica cuál falta, por ejemplo `Falta JWT_SECRET en .env`. Si `JWT_SECRET` tiene menos de 32 caracteres, el backend no arranca y lo informa en su log.
+
+Una vez levantado:
+
+| Qué | Dirección |
+|---|---|
+| Tienda (frontend) | http://localhost:5173 |
+| API REST | http://localhost:8080/api |
+| WSDL del proveedor SOAP | http://localhost:8091/soap/proveedor?wsdl |
+| Consola de RabbitMQ | http://localhost:15672 (usuario y contraseña de `.env`) |
+
+Usuarios para ingresar:
+
+- **Administrador:** el email de `ADMIN_EMAIL` (por defecto `admin@aurea.com`) con la contraseña que se puso en `ADMIN_PASSWORD`. Se crea solo en el primer arranque, con la base vacía.
+- **Cliente:** se registra desde la tienda con "Crear cuenta".
+
+El catálogo de joyas de ejemplo se carga automáticamente la primera vez. Para detener todo: `docker compose down`. Para borrar también los datos y empezar de cero: `docker compose down -v`.
+
+El frontend se sirve con nginx, que reenvía `/api` al backend: navegador, cookies y API quedan en el mismo origen. Ninguna contraseña se muestra en los logs.
+
+## Ejecución en modo desarrollo
+
+Para trabajar sobre el código sin contenedores para backend y frontend.
+
+Backend: JDK 25 (LTS), Maven y Docker Compose. Copiar `aurea-backend/.env.example` como `aurea-backend/.env` y completar los datos de PostgreSQL, RabbitMQ, `JWT_SECRET` y `ADMIN_PASSWORD`. `DB_URL` debe comenzar con `jdbc:postgresql://`; no colocar comillas alrededor de los valores, porque Spring importa el archivo como propiedades Java. `DDL_AUTO=validate` comprueba el esquema; `update` permite crearlo o actualizarlo en desarrollo. El lanzador de VS Code y Maven deben ejecutarse desde `aurea-backend` y usar ese mismo `.env`. Iniciar RabbitMQ desde `aurea-backend` con `docker compose up -d rabbitmq`, y luego:
 
 ```powershell
 mvn spring-boot:run

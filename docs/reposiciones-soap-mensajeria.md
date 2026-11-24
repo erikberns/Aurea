@@ -1,6 +1,6 @@
 # Reposición por SOAP y mensajería de recepción
 
-Aurea incorpora Reposición y Notificaciones. El proveedor es una aplicación externa en la carpeta hermana `ProveedorSOAP/`, con su propio Maven y base de datos. La interfaz administrativa está en `/admin/reposiciones` y requiere ADMIN.
+Aurea incorpora Reposición y Notificaciones. El proveedor es una aplicación externa en la carpeta `proveedor-soap/` de este repositorio, como proyecto independiente con su propio Maven, base de datos y contenedor. La interfaz administrativa está en `/admin/reposiciones` y requiere ADMIN.
 
 ## Arquitectura
 
@@ -71,7 +71,7 @@ Disponibilidad responde 503 si el proveedor falla. Transiciones inválidas respo
 
 ## Arranque local
 
-1. En `ProveedorSOAP/`: `mvn package` y `java -jar target/proveedor-soap-1.0.0.jar`. WSDL: http://127.0.0.1:8091/soap/proveedor?wsdl.
+1. En `proveedor-soap/`: `mvn package` y `java -jar target/proveedor-soap-1.0.0.jar`. WSDL: http://127.0.0.1:8091/soap/proveedor?wsdl.
 2. En `aurea-backend/`, configurar PostgreSQL en .env. Crear las tablas nuevas con `docs/sql/002_reposiciones.sql` sobre la base elegida, o usar DDL_AUTO=update en desarrollo. No usar create-drop sobre datos reales.
 3. Ejecutar `docker compose up -d rabbitmq`.
 4. Configurar PROVEEDOR_SOAP_URL=http://127.0.0.1:8091/soap/proveedor. Ejecutar `mvn spring-boot:run`.
