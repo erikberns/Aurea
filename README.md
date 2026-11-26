@@ -96,7 +96,7 @@ En el formulario de productos del panel (`/admin/productos`), el administrador c
 - **Con Gemini:** completar `IA_API_KEY` en el `.env` con una clave gratuita de [Google AI Studio](https://aistudio.google.com/) y reiniciar el backend. No hace falta cambiar nada más. Si el modelo configurado en `IA_MODELO` ya no existe, copiar el identificador actual desde AI Studio.
 - **Apagarlo:** `IA_HABILITADA=false`. El formulario sigue funcionando a mano.
 
-El modelo queda detrás de un gateway con timeout de 5 s, circuit breaker, límite de 10 solicitudes por minuto y trazas sin datos personales (`GET /api/ia/trazas`). Si la IA falla o su respuesta no pasa las validaciones, se devuelve una plantilla para completar a mano. Diseño en [ADR-009](docs/adr/ADR-009-gateway-ia-descripciones.md); ficha, política de datos, riesgos OWASP y plan de apagado en [docs/ia](docs/ia); eval set en [aurea-backend/evals](aurea-backend/evals/README.md).
+El modelo queda detrás de un gateway con timeout de 8 s (Gemini gratuito respondió en 1,8 a 4,4 s en las pruebas), circuit breaker, límite de 10 solicitudes por minuto y trazas sin datos personales (`GET /api/ia/trazas`). Si la IA falla o su respuesta no pasa las validaciones, se devuelve una plantilla para completar a mano. Diseño en [ADR-009](docs/adr/ADR-009-gateway-ia-descripciones.md); ficha, política de datos, riesgos OWASP y plan de apagado en [docs/ia](docs/ia); eval set en [aurea-backend/evals](aurea-backend/evals/README.md).
 
 ## Ejecución en modo desarrollo
 

@@ -25,7 +25,7 @@ public class IAConfig {
     @Bean
     ConfiguracionIA configuracionIA(
             @Value("${app.ia.habilitada:true}") boolean habilitada,
-            @Value("${app.ia.timeout-ms:5000}") long timeoutMs,
+            @Value("${app.ia.timeout-ms:8000}") long timeoutMs,
             @Value("${app.ia.max-solicitudes-por-minuto:10}") int maxPorMinuto,
             @Value("${app.ia.costo-entrada-usd-por-millon:0}") double costoEntrada,
             @Value("${app.ia.costo-salida-usd-por-millon:0}") double costoSalida) {
@@ -39,7 +39,7 @@ public class IAConfig {
             @Value("${app.ia.api-key:}") String claveApi,
             @Value("${app.ia.modelo:gemini-3.8-flash}") String modelo,
             @Value("${app.ia.url:https://generativelanguage.googleapis.com}") String url,
-            @Value("${app.ia.timeout-ms:5000}") long timeoutMs,
+            @Value("${app.ia.timeout-ms:8000}") long timeoutMs,
             @Value("${app.ia.nivel-razonamiento:low}") String nivelRazonamiento,
             ObjectMapper json) {
         String elegido = proveedor == null ? "auto" : proveedor.trim().toLowerCase(Locale.ROOT);

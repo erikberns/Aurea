@@ -60,7 +60,7 @@ class EvalDescripcionProductoTests {
         long pausaMs = Long.getLong("aurea.eval.pausa-ms", real ? 4000L : 0L);
         ProveedorModeloIA modelo = real
                 ? new GeminiModeloAdapter(env("IA_API_URL", "https://generativelanguage.googleapis.com"),
-                        System.getenv("IA_API_KEY"), env("IA_MODELO", "gemini-3.8-flash"), Duration.ofSeconds(5), json,
+                        System.getenv("IA_API_KEY"), env("IA_MODELO", "gemini-3.8-flash"), Duration.ofSeconds(8), json,
                         env("IA_NIVEL_RAZONAMIENTO", "low"))
                 : new ModeloSimuladoAdapter(json);
 
@@ -69,7 +69,7 @@ class EvalDescripcionProductoTests {
         // Con el modelo real el circuit breaker no se abre durante el eval: cada caso tiene que llegar al
         // modelo, si no la calidad mediría los segundos que el circuito estuvo abierto y no al modelo.
         var gateway = new AIGatewayService(modelo, mock(TrazaIARepository.class),
-                new ConfiguracionIA(true, Duration.ofMillis(Long.getLong("aurea.eval.timeout-ms", 5000L)), 1000,
+                new ConfiguracionIA(true, Duration.ofMillis(Long.getLong("aurea.eval.timeout-ms", 8000L)), 1000,
                         real ? 1000 : 3, Duration.ofSeconds(30), 0, 0));
         String prompt = Files.readString(Path.of("src/main/resources/prompts/descripcion-producto.v1.md"));
         var servicio = new SugerenciaProductoService(productos, gateway, json, prompt);

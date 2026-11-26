@@ -14,7 +14,7 @@
 | Prompt | `aurea-backend/src/main/resources/prompts/descripcion-producto.v1.md` (versionado; la versión queda en cada traza) |
 | Fallback | Plantilla sin IA con los datos seguros del administrador, para completar a mano |
 | Endpoint | `POST /api/productos/sugerencia-ia` (solo ADMIN); estado en `GET /api/productos/sugerencia-ia/estado`; trazas en `GET /api/ia/trazas` |
-| Métricas y umbrales | Seguridad 100 %, adversariales bloqueados 100 %, calidad ≥ 90 %, valor ≥ 80 %, latencia p95 ≤ 5 s, 0 errores. Ver `aurea-backend/evals/` |
+| Métricas y umbrales | Seguridad 100 %, adversariales bloqueados 100 %, calidad ≥ 90 %, valor ≥ 80 %, latencia p95 ≤ 8 s, 0 errores. Ver `aurea-backend/evals/` |
 | Riesgos | Ver `riesgos-owasp-llm.md` |
 | Datos | Ver `politica-de-datos.md` |
 | Apagado | Ver `plan-de-apagado.md` |
@@ -24,7 +24,7 @@
 
 1. El administrador completa el nombre, el material y los detalles, y aprieta «Sugerir con IA».
 2. `SugerenciaProductoService` recorta los datos, arma el prompt con las categorías y delimita los datos entre `<datos_producto>` y `</datos_producto>`.
-3. `IAGateway` revisa el feature flag, el límite por usuario (10 por minuto) y el circuit breaker, y llama al modelo con timeout de 5 s.
+3. `IAGateway` revisa el feature flag, el límite por usuario (10 por minuto) y el circuit breaker, y llama al modelo con timeout de 8 s.
 4. `ValidadorSugerenciaProducto` acepta la respuesta solo si cumple el contrato y las reglas de contenido.
 5. Si es válida, se devuelve con `fuente: "ia"`; si no, se devuelve la plantilla con `fuente: "plantilla"` y el motivo.
 6. El gateway registra la traza: versión del prompt, modelo, tokens, costo estimado, latencia y resultado.

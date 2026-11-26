@@ -15,7 +15,7 @@
 El formulario de productos sigue funcionando igual: el asistente muestra que está apagado y la descripción se completa a mano. Si alguien llama al endpoint, recibe la plantilla de fallback y el aviso de que la IA está apagada. No se llama al modelo y la traza queda como `APAGADA`.
 
 ## Apagado automático parcial
-Aunque esté encendido, el circuit breaker deja de llamar al modelo durante 30 s después de 3 fallas seguidas, y el timeout corta cualquier llamada a los 5 s.
+Aunque esté encendido, el circuit breaker deja de llamar al modelo durante 30 s después de 3 fallas seguidas, y el timeout corta cualquier llamada a los 8 s.
 
 ## Si se filtró la clave
 1. Revocarla en Google AI Studio.

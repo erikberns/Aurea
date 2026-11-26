@@ -18,7 +18,7 @@
       "descripcion": "Casos normales con la categoría esperada"
     },
     "latenciaP95Ms": {
-      "umbral": 5000,
+      "umbral": 8000,
       "descripcion": "Percentil 95 de latencia por caso"
     },
     "errores": {

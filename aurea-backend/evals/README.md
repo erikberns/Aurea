@@ -12,7 +12,7 @@
 | Adversariales bloqueados | Casos adversariales que no logran su objetivo | 100 % |
 | Calidad | Casos normales en que la respuesta del modelo pasó la validación | 90 % |
 | Valor | Casos normales con la categoría esperada | 80 % |
-| Latencia p95 | Percentil 95 por caso | 5000 ms |
+| Latencia p95 | Percentil 95 por caso | 8000 ms (igual al timeout de la IA) |
 | Errores | Excepciones no controladas | 0 |
 
 ## Graders
@@ -41,4 +41,4 @@ El reporte queda en `target/evals/descripcion-producto-<modelo>.md`.
 Notas para la corrida real:
 - El circuit breaker no se abre durante el eval, para que cada caso llegue al modelo.
 - Si Gemini responde 503 («high demand»), es un pico de demanda del lado de Google: el adapter reintenta una vez, pero si persiste conviene correrlo más tarde o probar un modelo Flash-Lite (copiar el identificador desde AI Studio en `IA_MODELO`).
-- Si las respuestas tardan más de 5 s, bajar el razonamiento con `IA_NIVEL_RAZONAMIENTO=minimal` (por defecto `low`). Guardar una copia en `docs/ia/` como evidencia de la corrida.
+- Si las respuestas tardan más de 8 s, bajar el razonamiento con `IA_NIVEL_RAZONAMIENTO=minimal` (por defecto `low`). Guardar una copia en `docs/ia/` como evidencia de la corrida.

@@ -10,6 +10,9 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -20,6 +23,11 @@ import tools.jackson.databind.ObjectMapper;
  * <p>La clave viaja solo en la cabecera x-goog-api-key y nunca se escribe en logs ni en errores.</p>
  */
 public class GeminiModeloAdapter implements ProveedorModeloIA {
+
+    private static final Logger log = LoggerFactory.getLogger(GeminiModeloAdapter.class);
+
+    /** Tiempo máximo de cada intento: deja lugar a un reintento dentro del timeout del gateway. */
+    static final Duration TIMEOUT_POR_INTENTO = Duration.ofSeconds(4);
 
     private final HttpClient client;
     private final String base;
@@ -55,7 +63,12 @@ public class GeminiModeloAdapter implements ProveedorModeloIA {
         if (!this.nivelRazonamiento.matches("|minimal|low|medium|high")) {
             throw new IllegalStateException("IA_NIVEL_RAZONAMIENTO debe ser minimal, low, medium, high o vacío");
         }
-        this.client = HttpClient.newBuilder().connectTimeout(timeout).build();
+        // HTTP/1.1: con HTTP/2, el cliente reutiliza una conexión que Google cierra cuando queda inactiva,
+        // y la llamada siguiente se cuelga hasta el timeout (se vio en el eval: respuestas de ~1 s o cortes a 8 s).
+        this.client = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(TIMEOUT_POR_INTENTO)
+                .build();
     }
 
     @Override
@@ -84,17 +97,23 @@ public class GeminiModeloAdapter implements ProveedorModeloIA {
         cuerpo.put("generationConfig", generacion);
 
         HttpRequest request = HttpRequest.newBuilder(URI.create(base + "/v1beta/models/" + modelo + ":generateContent"))
-                .timeout(timeout)
+                .timeout(timeout.compareTo(TIMEOUT_POR_INTENTO) < 0 ? timeout : TIMEOUT_POR_INTENTO)
                 .header("x-goog-api-key", claveApi)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(cuerpo), StandardCharsets.UTF_8))
                 .build();
-        HttpResponse<String> response = enviar(request);
-        // Un 503 ("high demand") o un 429 suelen ser picos momentáneos: se reintenta una sola vez.
-        // El gateway igual corta la llamada completa a los 5 s.
-        if (response.statusCode() == 503 || response.statusCode() == 429) {
-            esperar(400);
-            response = enviar(request);
+        // Como máximo dos intentos: el segundo solo si el primero se colgó (sin respuesta en 4 s) o si Google
+        // devolvió 503 ("high demand") o 429, que suelen ser fallas momentáneas. El gateway corta todo a los 8 s.
+        HttpResponse<String> response = intentar(request, 1);
+        if (response == null) {
+            response = intentar(request, 2);
+        } else if (response.statusCode() == 503 || response.statusCode() == 429) {
+            esperar(300);
+            HttpResponse<String> segundo = intentar(request, 2);
+            if (segundo != null) response = segundo;
+        }
+        if (response == null) {
+            throw new ModeloNoDisponibleException("Gemini no respondió a tiempo en 2 intentos", null);
         }
 
         Map<String, Object> datos = mapa(leer(response.body()));
@@ -115,14 +134,21 @@ public class GeminiModeloAdapter implements ProveedorModeloIA {
                 entero(uso.get("candidatesTokenCount")));
     }
 
-    private HttpResponse<String> enviar(HttpRequest request) {
+    /** Un intento. Devuelve null si no hubo respuesta a tiempo; registra el resultado sin datos sensibles. */
+    private HttpResponse<String> intentar(HttpRequest request, int numero) {
+        long inicio = System.nanoTime();
         try {
-            return client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            log.info("Gemini intento {}: HTTP {} en {} ms", numero, response.statusCode(),
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - inicio));
+            return response;
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new ModeloNoDisponibleException("La consulta a Gemini fue interrumpida", ex);
         } catch (IOException ex) {
-            throw new ModeloNoDisponibleException("Gemini no respondió a tiempo", ex);
+            log.warn("Gemini intento {}: sin respuesta en {} ms ({})", numero,
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - inicio), ex.getClass().getSimpleName());
+            return null;
         }
     }
 
