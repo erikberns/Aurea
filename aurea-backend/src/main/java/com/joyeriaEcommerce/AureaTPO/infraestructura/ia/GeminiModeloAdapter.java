@@ -29,7 +29,6 @@ public class GeminiModeloAdapter implements ProveedorModeloIA {
     /** Tiempo máximo de cada intento: deja lugar a un reintento dentro del timeout del gateway. */
     static final Duration TIMEOUT_POR_INTENTO = Duration.ofSeconds(4);
 
-    private final HttpClient client;
     private final String base;
     private final String claveApi;
     private final String modelo;
@@ -63,12 +62,7 @@ public class GeminiModeloAdapter implements ProveedorModeloIA {
         if (!this.nivelRazonamiento.matches("|minimal|low|medium|high")) {
             throw new IllegalStateException("IA_NIVEL_RAZONAMIENTO debe ser minimal, low, medium, high o vacío");
         }
-        // HTTP/1.1: con HTTP/2, el cliente reutiliza una conexión que Google cierra cuando queda inactiva,
-        // y la llamada siguiente se cuelga hasta el timeout (se vio en el eval: respuestas de ~1 s o cortes a 8 s).
-        this.client = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_1_1)
-                .connectTimeout(TIMEOUT_POR_INTENTO)
-                .build();
+        // El cliente HTTP se crea en cada intento (ver intentar()).
     }
 
     @Override
@@ -134,9 +128,18 @@ public class GeminiModeloAdapter implements ProveedorModeloIA {
                 entero(uso.get("candidatesTokenCount")));
     }
 
-    /** Un intento. Devuelve null si no hubo respuesta a tiempo; registra el resultado sin datos sensibles. */
+    /**
+     * Un intento, con una conexión nueva para no depender de conexiones reutilizadas. En el plan gratuito la
+     * latencia de Gemini es muy variable: en el eval del 26/11 la mayoría respondió en ~1 s, pero 8 de 32 primeros
+     * intentos pasaron de 4 s. Por eso cada intento se corta a los 4 s y se reintenta una vez, y el segundo intento
+     * recuperó los 8 casos (ver docs/ia/resultados-eval-gemini.md). Devuelve null si no hubo respuesta a tiempo.
+     */
     private HttpResponse<String> intentar(HttpRequest request, int numero) {
         long inicio = System.nanoTime();
+        HttpClient client = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(TIMEOUT_POR_INTENTO)
+                .build();
         try {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             log.info("Gemini intento {}: HTTP {} en {} ms", numero, response.statusCode(),
@@ -149,6 +152,8 @@ public class GeminiModeloAdapter implements ProveedorModeloIA {
             log.warn("Gemini intento {}: sin respuesta en {} ms ({})", numero,
                     TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - inicio), ex.getClass().getSimpleName());
             return null;
+        } finally {
+            client.shutdownNow(); // libera la conexión y el hilo del cliente al instante
         }
     }
 
