@@ -67,11 +67,11 @@ class RestContratoHttpTests {
     @Test
     void erroresRespondenEnFormatoProblemDetailsRfc9457() throws Exception {
         mvc.perform(get("/api/productos/999999999"))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.type").value("https://aurea.local/problemas/solicitud-invalida"))
-                .andExpect(jsonPath("$.title").value("Solicitud inválida"))
-                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.type").value("https://aurea.local/problemas/recurso-no-encontrado"))
+                .andExpect(jsonPath("$.title").value("Recurso no encontrado"))
+                .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.detail").value("Producto no encontrado"))
                 .andExpect(jsonPath("$.instance").value("/api/productos/999999999"));
     }

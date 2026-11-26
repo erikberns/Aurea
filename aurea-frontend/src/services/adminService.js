@@ -15,6 +15,9 @@ export const adminService = {
   actualizarPrecio: (id, precio) => httpRequest(`/productos/${id}/precio?newPrice=${q(precio)}`, { method: "PATCH" }),
   actualizarStock: (id, stock) => httpRequest(`/productos/${id}/inventario?newStock=${q(stock)}`, { method: "PATCH" }),
   cambiarEstado: (id, activo) => httpRequest(`/productos/${id}/estado?activo=${activo}`, { method: "PATCH" }),
+  sugerirDescripcion: (datos) => httpRequest("/productos/sugerencia-ia", { method: "POST", body: datos }),
+  estadoAsistenteIA: () => httpRequest("/productos/sugerencia-ia/estado"),
+  trazasIA: () => httpRequest("/ia/trazas"),
 
   pedidos: () => httpRequest("/ordenes"),
   pagos: () => httpRequest("/pagos"),

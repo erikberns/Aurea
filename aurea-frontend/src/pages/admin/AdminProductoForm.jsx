@@ -4,6 +4,7 @@ import { adminService } from "../../services/adminService";
 import { imagenDeRespaldo } from "../../utils/imagenes";
 import { UMBRAL_STOCK_CRITICO, moneda } from "../../utils/admin";
 import { Boton, Cargando, Encabezado, Estado, Mensaje, Tarjeta, campo } from "../../components/admin/AdminUI";
+import AsistenteDescripcionIA from "../../components/admin/AsistenteDescripcionIA";
 
 const VACIO = { name: "", description: "", imageUrl: "", categoryId: "", price: "", stock: "", activo: true };
 
@@ -82,6 +83,16 @@ export default function AdminProductoForm() {
     setForm((f) => ({ ...f, [campoNombre]: valor }));
     setErrores((er) => ({ ...er, [campoNombre]: undefined }));
     if (campoNombre === "imageUrl") setImagenRota(false);
+  };
+
+  // El administrador decide: la sugerencia solo se copia al formulario cuando la acepta, y la puede editar.
+  const usarSugerencia = (sugerencia) => {
+    setForm((f) => ({
+      ...f,
+      description: sugerencia.descripcion,
+      categoryId: sugerencia.categoriaId ? String(sugerencia.categoriaId) : f.categoryId,
+    }));
+    setErrores((er) => ({ ...er, categoryId: undefined }));
   };
 
   const categoriaElegida = categorias.find((c) => String(c.id) === form.categoryId);
@@ -240,6 +251,7 @@ export default function AdminProductoForm() {
               <textarea value={form.description} onChange={actualizar("description")} rows={5} maxLength={255}
                 className={`${campo} h-auto py-3`} placeholder="Vermeil 18k sobre plata 925, medallón grabado a mano…" />
             </Campo>
+            <AsistenteDescripcionIA nombre={form.name} onUsar={usarSugerencia} />
           </Tarjeta>
 
           <Tarjeta className="space-y-5 p-6">

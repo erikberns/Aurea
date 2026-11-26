@@ -66,6 +66,13 @@ jobs:
               print "Objetivo de la entrega final para la capa de negocio: 80 % de líneas y 70 % de ramas."
             }' "$csv" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Resumen del eval de IA
+        if: always()
+        run: |
+          for reporte in target/evals/*.md; do
+            [ -f "$reporte" ] && cat "$reporte" >> "$GITHUB_STEP_SUMMARY"
+          done
+
       - name: Análisis estático con SonarCloud
         if: env.SONAR_TOKEN != ''
         run: >
@@ -83,6 +90,7 @@ jobs:
           path: |
             aurea-backend/target/site/jacoco/
             aurea-backend/target/surefire-reports/
+            aurea-backend/target/evals/
 
   proveedor-soap:
     name: Proveedor SOAP (Maven)

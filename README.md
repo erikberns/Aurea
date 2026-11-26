@@ -60,6 +60,7 @@ Es la forma recomendada para probar el proyecto sin instalar Java, Maven ni Node
    | `ADMIN_PASSWORD` | Contraseña del administrador inicial. |
    | `ADMIN_EMAIL` | Opcional. Por defecto `admin@aurea.com`. |
    | `PAGOS_PROVEEDOR` | Dejar `simulado`. Para usar Stripe en modo de prueba, poner `stripe` y completar `STRIPE_SECRET_KEY` con una clave `sk_test_`. |
+   | `IA_API_KEY` | Opcional. Sin clave, el asistente de IA usa un modelo simulado. Con una clave gratuita de Google AI Studio usa Gemini. |
 
 4. Levantar todo:
 
@@ -86,6 +87,16 @@ Usuarios para ingresar:
 El catálogo de joyas de ejemplo se carga automáticamente la primera vez. Para detener todo: `docker compose down`. Para borrar también los datos y empezar de cero: `docker compose down -v`.
 
 El frontend se sirve con nginx, que reenvía `/api` al backend: navegador, cookies y API quedan en el mismo origen. Ninguna contraseña se muestra en los logs.
+
+## Asistente de descripciones con IA
+
+En el formulario de productos del panel (`/admin/productos`), el administrador carga el nombre, el material y los detalles de una joya y aprieta «Sugerir con IA». El asistente propone una descripción y una categoría; el administrador la revisa y decide si la usa. Nada se guarda sin su aprobación.
+
+- **Sin clave** funciona con un modelo simulado, sin red: así levanta con `docker compose up` y corre en el CI.
+- **Con Gemini:** completar `IA_API_KEY` en el `.env` con una clave gratuita de [Google AI Studio](https://aistudio.google.com/) y reiniciar el backend. No hace falta cambiar nada más. Si el modelo configurado en `IA_MODELO` ya no existe, copiar el identificador actual desde AI Studio.
+- **Apagarlo:** `IA_HABILITADA=false`. El formulario sigue funcionando a mano.
+
+El modelo queda detrás de un gateway con timeout de 5 s, circuit breaker, límite de 10 solicitudes por minuto y trazas sin datos personales (`GET /api/ia/trazas`). Si la IA falla o su respuesta no pasa las validaciones, se devuelve una plantilla para completar a mano. Diseño en [ADR-009](docs/adr/ADR-009-gateway-ia-descripciones.md); ficha, política de datos, riesgos OWASP y plan de apagado en [docs/ia](docs/ia); eval set en [aurea-backend/evals](aurea-backend/evals/README.md).
 
 ## Ejecución en modo desarrollo
 

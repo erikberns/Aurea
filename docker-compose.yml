@@ -69,6 +69,12 @@ services:
       CORS_ALLOWED_ORIGIN: http://localhost:5173
       PAGOS_PROVEEDOR: ${PAGOS_PROVEEDOR:-simulado}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      # Asistente de IA: con IA_API_KEY usa Gemini; sin ella, el modelo simulado.
+      IA_PROVEEDOR: ${IA_PROVEEDOR:-auto}
+      IA_API_KEY: ${IA_API_KEY:-}
+      IA_MODELO: ${IA_MODELO:-gemini-3.8-flash}
+      IA_HABILITADA: ${IA_HABILITADA:-true}
+      IA_NIVEL_RAZONAMIENTO: ${IA_NIVEL_RAZONAMIENTO:-low}
     ports:
       - "8080:8080"     # API REST: http://localhost:8080/api
 

@@ -1,5 +1,6 @@
 package com.joyeriaEcommerce.AureaTPO.pagos.negocio;
 
+import com.joyeriaEcommerce.AureaTPO.infraestructura.errores.RecursoNoEncontradoException;
 import com.joyeriaEcommerce.AureaTPO.pagos.datos.EstadoPago;
 import com.joyeriaEcommerce.AureaTPO.pagos.datos.Pago;
 import com.joyeriaEcommerce.AureaTPO.pagos.datos.PagoRepository;
@@ -73,7 +74,7 @@ public class ServicioDePagos implements IPagos {
 
     @Override
     public PagoDTO reintentarCaptura(Long pagoId) {
-        Pago pago = pagos.findById(pagoId).orElseThrow(() -> new IllegalArgumentException("Pago inexistente"));
+        Pago pago = pagos.findById(pagoId).orElseThrow(() -> new RecursoNoEncontradoException("Pago inexistente"));
         if (pago.estado != EstadoPago.CAPTURA_PENDIENTE) {
             throw new IllegalStateException("Solo se puede reintentar la captura de un pago pendiente de captura");
         }

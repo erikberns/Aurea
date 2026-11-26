@@ -1,4 +1,6 @@
 package com.joyeriaEcommerce.AureaTPO.reposiciones.negocio;
+
+import com.joyeriaEcommerce.AureaTPO.infraestructura.errores.RecursoNoEncontradoException;
 import com.joyeriaEcommerce.AureaTPO.reposiciones.datos.Reposicion;
 import com.joyeriaEcommerce.AureaTPO.reposiciones.datos.ReposicionRepository;
 import com.joyeriaEcommerce.AureaTPO.reposiciones.datos.EventoPendiente;
@@ -80,10 +82,10 @@ public class ReposicionService implements IReposiciones {
         return dto(buscar(id));
     }
     private Reposicion buscar(String id) {
-        return reposiciones.findById(id).orElseThrow(() -> new IllegalArgumentException("Reposición inexistente"));
+        return reposiciones.findById(id).orElseThrow(() -> new RecursoNoEncontradoException("Reposición inexistente"));
     }
     private Reposicion bloquear(String id) {
-        return reposiciones.bloquear(id).orElseThrow(() -> new IllegalArgumentException("Reposición inexistente"));
+        return reposiciones.bloquear(id).orElseThrow(() -> new RecursoNoEncontradoException("Reposición inexistente"));
     }
     private ReposicionDTO dto(Reposicion r) {
         boolean publicado = eventos.findById(r.id).map(e -> e.publicado != null).orElse(false);

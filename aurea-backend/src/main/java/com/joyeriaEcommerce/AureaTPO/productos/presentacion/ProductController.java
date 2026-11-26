@@ -1,8 +1,12 @@
 package com.joyeriaEcommerce.AureaTPO.productos.presentacion;
 
 import com.joyeriaEcommerce.AureaTPO.productos.negocio.CategoryDTO;
+import com.joyeriaEcommerce.AureaTPO.productos.negocio.EstadoAsistenteIADTO;
+import com.joyeriaEcommerce.AureaTPO.productos.negocio.ISugerenciasProducto;
+import com.joyeriaEcommerce.AureaTPO.productos.negocio.SugerenciaProductoDTO;
 import com.joyeriaEcommerce.AureaTPO.productos.negocio.ProductDTO;
 import com.joyeriaEcommerce.AureaTPO.productos.negocio.IProductos;
+import jakarta.validation.Valid;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
@@ -13,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,9 +25,28 @@ import org.springframework.web.bind.annotation.*;
 public class ProductController {
 
     private final IProductos productService;
+    private final ISugerenciasProducto sugerencias;
 
-    public ProductController(IProductos productService) {
+    public ProductController(IProductos productService, ISugerenciasProducto sugerencias) {
         this.productService = productService;
+        this.sugerencias = sugerencias;
+    }
+
+    /**
+     * Asistente de descripciones con IA (Clase 14). Solo sugiere: no guarda nada. Si la IA no está
+     * disponible o su respuesta no pasa las validaciones, responde igual con una plantilla (fuente "plantilla").
+     */
+    @PostMapping("/sugerencia-ia")
+    @PreAuthorize("hasRole('ADMIN')")
+    public SugerenciaProductoDTO sugerirDescripcion(@Valid @RequestBody SugerenciaIARequest request,
+                                                    Authentication auth) {
+        return sugerencias.sugerirDescripcion(request.toDatos(), auth.getName());
+    }
+
+    @GetMapping("/sugerencia-ia/estado")
+    @PreAuthorize("hasRole('ADMIN')")
+    public EstadoAsistenteIADTO estadoAsistente() {
+        return sugerencias.estado();
     }
 
     @GetMapping

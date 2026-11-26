@@ -1,5 +1,7 @@
 package com.joyeriaEcommerce.AureaTPO.infraestructura.presentacion;
 
+import com.joyeriaEcommerce.AureaTPO.infraestructura.errores.RecursoNoEncontradoException;
+import com.joyeriaEcommerce.AureaTPO.infraestructura.ia.LimiteIAExcedidoException;
 import com.joyeriaEcommerce.AureaTPO.pagos.negocio.PagoRechazadoException;
 import com.joyeriaEcommerce.AureaTPO.pagos.negocio.PasarelaNoDisponibleException;
 import com.joyeriaEcommerce.AureaTPO.reposiciones.negocio.ProveedorNoDisponibleException;
@@ -71,6 +73,18 @@ public class ApiExceptionHandler {
     ResponseEntity<ProblemDetail> demasiadosIntentos(DemasiadosIntentosException ex, HttpServletRequest request) {
         return conReintento(problem(HttpStatus.TOO_MANY_REQUESTS, "demasiados-intentos",
                 "Demasiados intentos", ex.getMessage(), request, Map.of()), ex.getSegundosParaReintentar());
+    }
+
+    @ExceptionHandler(LimiteIAExcedidoException.class)
+    ResponseEntity<ProblemDetail> limiteIA(LimiteIAExcedidoException ex, HttpServletRequest request) {
+        return conReintento(problem(HttpStatus.TOO_MANY_REQUESTS, "limite-ia",
+                "Demasiadas solicitudes a la IA", ex.getMessage(), request, Map.of()), ex.getSegundosParaReintentar());
+    }
+
+    /** Más específico que IllegalArgumentException: Spring elige este manejador para un recurso inexistente. */
+    @ExceptionHandler(RecursoNoEncontradoException.class)
+    ResponseEntity<ProblemDetail> noEncontrado(RecursoNoEncontradoException ex, HttpServletRequest request) {
+        return problem(HttpStatus.NOT_FOUND, "recurso-no-encontrado", "Recurso no encontrado", ex.getMessage(), request, Map.of());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

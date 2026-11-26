@@ -27,6 +27,9 @@ class ProveedorSoapAdapterTests {
             exchange.getResponseHeaders().set("Content-Type", "text/xml");
             exchange.sendResponseHeaders(200, body.length); exchange.getResponseBody().write(body); exchange.close();
         });
+        // Un hilo por solicitud: con el ejecutor por defecto (uno solo), las solicitudes que el cliente ya
+        // abandonó por timeout quedaban en cola y el contador no las veía a tiempo.
+        server.setExecutor(java.util.concurrent.Executors.newCachedThreadPool());
         server.start();
         adapter = new ProveedorSoapAdapter("http://127.0.0.1:" + server.getAddress().getPort(), 500);
     }

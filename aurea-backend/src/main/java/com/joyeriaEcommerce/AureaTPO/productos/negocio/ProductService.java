@@ -1,5 +1,6 @@
 package com.joyeriaEcommerce.AureaTPO.productos.negocio;
 
+import com.joyeriaEcommerce.AureaTPO.infraestructura.errores.RecursoNoEncontradoException;
 import com.joyeriaEcommerce.AureaTPO.productos.datos.Product;
 import com.joyeriaEcommerce.AureaTPO.productos.datos.ProductDAO;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,7 @@ public class ProductService implements IProductos {
     @Transactional(readOnly=true)
     public ProductDTO getProductById(Long id) {
         Product product = productDAO.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Producto no encontrado"));
         return toDTO(product);
     }
 
@@ -56,7 +57,7 @@ public class ProductService implements IProductos {
     public ProductDTO updatePrice(Long productId, Double newPrice) {
         validarPrecio(newPrice);
         Product product = productDAO.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Producto no encontrado"));
         product.setPrice(newPrice);
         return toDTO(productDAO.save(product));
     }
@@ -64,7 +65,7 @@ public class ProductService implements IProductos {
     @Transactional
     public ProductDTO updateProduct(Long productId, String name, String description, String imageUrl, Long categoryId) {
         Product product = productDAO.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Producto no encontrado"));
         if (name != null && !name.trim().isEmpty()) {
             product.setName(name);
         }
@@ -85,7 +86,7 @@ public class ProductService implements IProductos {
     @Transactional
     public ProductDTO cambiarEstado(Long productId, boolean activo) {
         Product product = productDAO.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Producto no encontrado"));
         product.setActive(activo);
         return toDTO(productDAO.save(product));
     }
@@ -102,7 +103,7 @@ public class ProductService implements IProductos {
     @Transactional
     public void deleteProduct(Long productId) {
         if (!productDAO.existsById(productId)) {
-            throw new IllegalArgumentException("Producto no encontrado");
+            throw new RecursoNoEncontradoException("Producto no encontrado");
         }
         productDAO.deleteById(productId);
     }
@@ -111,7 +112,7 @@ public class ProductService implements IProductos {
     public ProductDTO updateStock(Long productId, Integer newStock) {
         validarStock(newStock);
         Product product = productDAO.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Producto no encontrado"));
         product.setStock(newStock);
         return toDTO(productDAO.save(product));
     }
@@ -128,7 +129,7 @@ public class ProductService implements IProductos {
                 throw new IllegalArgumentException("Cantidad inválida");
             }
             Product product = productDAO.findById(entry.getKey())
-                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+                    .orElseThrow(() -> new RecursoNoEncontradoException("Producto no encontrado"));
             if (!Boolean.TRUE.equals(product.getActive()) || product.getStock() < cantidad) {
                 throw new IllegalStateException("Stock insuficiente o producto inactivo: " + product.getId());
             }

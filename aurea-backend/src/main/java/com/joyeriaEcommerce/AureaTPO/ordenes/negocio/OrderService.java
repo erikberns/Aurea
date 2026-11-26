@@ -1,5 +1,6 @@
 package com.joyeriaEcommerce.AureaTPO.ordenes.negocio;
 
+import com.joyeriaEcommerce.AureaTPO.infraestructura.errores.RecursoNoEncontradoException;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.EventoPedidoPendiente;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.EventoPedidoPendienteRepository;
 import com.joyeriaEcommerce.AureaTPO.ordenes.datos.Order;
@@ -96,7 +97,7 @@ public class OrderService implements IPedidos {
 
     private Order buscar(Long id) {
         return orderRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Orden no encontrada"));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Orden no encontrada"));
     }
 
     private OrderDTO toDTO(Order order) {
