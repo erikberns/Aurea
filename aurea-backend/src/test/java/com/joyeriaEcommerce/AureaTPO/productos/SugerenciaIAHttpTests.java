@@ -1,6 +1,5 @@
 package com.joyeriaEcommerce.AureaTPO.productos;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -9,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.joyeriaEcommerce.AureaTPO.infraestructura.configuracion.IJwtService;
+import com.jayway.jsonpath.JsonPath;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,22 @@ class SugerenciaIAHttpTests {
     @BeforeEach
     void setup() {
         mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
+    }
+
+    /**
+     * Token CSRF real (GET /api/csrf + cookie + cabecera). No se usa csrf() de spring-security-test porque
+     * reemplaza el repositorio de tokens del filtro compartido y rompe a las clases que corren después.
+     */
+    private RequestPostProcessor csrf() throws Exception {
+        String json = mvc.perform(get("/api/csrf")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String valor = JsonPath.read(json, "$.token");
+        String cabecera = JsonPath.read(json, "$.headerName");
+        return request -> {
+            request.setCookies(new jakarta.servlet.http.Cookie("XSRF-TOKEN", valor));
+            request.addHeader(cabecera, valor);
+            return request;
+        };
     }
 
     private String admin() {

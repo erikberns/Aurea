@@ -125,4 +125,54 @@ class ReposicionTests {
                 .content("{\"idSolicitud\":\"x\",\"productoId\":1,\"codigoProveedor\":\"ANILLO-PLATA\",\"cantidad\":0}"))
                 .andExpect(status().isBadRequest());
     }
+    @Test void solicitudValidaIdentificadorCodigoYCantidad() {
+        long p = productos.createProduct("Validaciones", "", 1.0, 0, null, "").id();
+        String id = UUID.randomUUID().toString();
+        assertThatThrownBy(() -> reposiciones.solicitar("no-uuid", p, "ANILLO-PLATA", 1)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> reposiciones.solicitar(id, p, "ANILLO-PLATA", 0)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> reposiciones.solicitar(id, p, "ANILLO-PLATA", 10001)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> reposiciones.solicitar(id, p, null, 1)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> reposiciones.solicitar(id, p, "anillo plata", 1)).isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(proveedor);
+    }
+    @Test void identificadorReutilizadoConOtroProductoOCodigoSeRechaza() {
+        var r = preparar("ACEPTADA");
+        long otro = productos.createProduct("Otro", "", 1.0, 0, null, "").id();
+        assertThatThrownBy(() -> reposiciones.solicitar(r.id(), otro, "ANILLO-PLATA", 3)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> reposiciones.solicitar(r.id(), r.productoId(), "COLLAR-ORO", 3)).isInstanceOf(IllegalStateException.class);
+        assertThat(reposiciones.solicitar(r.id(), r.productoId(), "ANILLO-PLATA", 3).estado()).isEqualTo("ACEPTADA");
+    }
+    @Test void respuestaIncompatibleDelProveedorDejaLaSolicitudPendienteConDetalle() {
+        long p = productos.createProduct("Incompatible", "", 1.0, 0, null, "").id();
+        String id = UUID.randomUUID().toString();
+        when(proveedor.consultar(id)).thenReturn(new ResultadoProveedorDTO(id, "ANILLO-PLATA", 99, "ACEPTADA", 0));
+        var r = reposiciones.solicitar(id, p, "ANILLO-PLATA", 3);
+        assertThat(r.estado()).isEqualTo("SOLICITADA");
+        assertThat(r.detalle()).contains("incompatibles");
+        doReturn(new ResultadoProveedorDTO(UUID.randomUUID().toString(), "ANILLO-PLATA", 3, "ACEPTADA", 0)).when(proveedor).consultar(id);
+        assertThat(reposiciones.sincronizar(id).estado()).isEqualTo("SOLICITADA");
+        doReturn(new ResultadoProveedorDTO(id, "COLLAR-ORO", 3, "ACEPTADA", 0)).when(proveedor).consultar(id);
+        assertThat(reposiciones.sincronizar(id).estado()).isEqualTo("SOLICITADA");
+        doReturn(new ResultadoProveedorDTO(id, "ANILLO-PLATA", 3, "EN_PROCESO", 0)).when(proveedor).consultar(id);
+        assertThat(reposiciones.sincronizar(id).estado()).isEqualTo("SOLICITADA");
+        doReturn(new ResultadoProveedorDTO(id, "ANILLO-PLATA", 3, "RECHAZADA", 0)).when(proveedor).consultar(id);
+        var rechazada = reposiciones.sincronizar(id);
+        assertThat(rechazada.estado()).isEqualTo("RECHAZADA");
+        assertThat(rechazada.detalle()).isNull();
+    }
+    @Test void sincronizarUnaSolicitudYaResueltaNoLlamaAlProveedor() {
+        var r = preparar("ACEPTADA");
+        clearInvocations(proveedor);
+        assertThat(reposiciones.sincronizar(r.id()).estado()).isEqualTo("ACEPTADA");
+        verifyNoInteractions(proveedor);
+    }
+    @Test void recibirUnaSolicitudPendienteOInexistenteFalla() {
+        long p = productos.createProduct("Pendiente", "", 1.0, 0, null, "").id();
+        String id = UUID.randomUUID().toString();
+        when(proveedor.consultar(id)).thenThrow(new ProveedorNoDisponibleException("Caído", null));
+        assertThat(reposiciones.solicitar(id, p, "ANILLO-PLATA", 1).detalle()).isEqualTo("Caído");
+        assertThatThrownBy(() -> reposiciones.recibir(id)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> reposiciones.recibir(UUID.randomUUID().toString())).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> reposiciones.sincronizar(UUID.randomUUID().toString())).isInstanceOf(RuntimeException.class);
+    }
 }
