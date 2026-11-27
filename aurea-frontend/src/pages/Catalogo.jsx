@@ -10,6 +10,8 @@ export default function Catalogo() {
   const categoriaFiltro = searchParams.get("categoria");
   const searchFiltro = searchParams.get("search");
   const sortFiltro = searchParams.get("sort") || "populares";
+  const precioMinimo = searchParams.get("precioMin") || "";
+  const precioMaximo = searchParams.get("precioMax") || "";
   const claveConsulta = JSON.stringify([categoriaFiltro, searchFiltro, sortFiltro]);
   const [resultado, setResultado] = useState(null);
   const [errorCarga, setErrorCarga] = useState(null);
@@ -40,7 +42,12 @@ export default function Catalogo() {
   if (errorCarga?.claveConsulta === claveConsulta) {
     return <p role="alert" className="px-6 py-16 text-center text-error">{errorCarga.mensaje}</p>;
   }
-  const joyas = resultado?.claveConsulta === claveConsulta ? resultado.joyas : [];
+  const joyasBase = resultado?.claveConsulta === claveConsulta ? resultado.joyas : [];
+  const joyas = joyasBase.filter((joya) => {
+    const precio = Number(joya.precio);
+    return (!precioMinimo || precio >= Number(precioMinimo))
+      && (!precioMaximo || precio <= Number(precioMaximo));
+  });
   const categorias = resultado?.claveConsulta === claveConsulta ? resultado.categorias : [];
 
   const setFiltro = (key, value) => {
@@ -64,6 +71,8 @@ export default function Catalogo() {
       categoriaFiltro={categoriaFiltro}
       searchFiltro={searchFiltro}
       sortFiltro={sortFiltro}
+      precioMinimo={precioMinimo}
+      precioMaximo={precioMaximo}
       setFiltro={setFiltro}
       clearFiltros={clearFiltros}
     />
