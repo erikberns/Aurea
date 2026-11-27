@@ -92,6 +92,54 @@ jobs:
             aurea-backend/target/surefire-reports/
             aurea-backend/target/evals/
 
+  mutacion:
+    name: Mutation testing (PIT, capa de negocio)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: aurea-backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Ejecutar PIT (falla si el mutation score queda por debajo de 60 %)
+        run: sh ./mvnw -B test-compile org.pitest:pitest-maven:mutationCoverage
+
+      - name: Resumen de mutación
+        if: always()
+        run: |
+          xml=target/pit-reports/mutations.xml
+          if [ ! -f "$xml" ]; then echo "PIT no generó el reporte." >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          total=$(grep -c '<mutation ' "$xml")
+          detectados=$(grep -c "status='KILLED'\|status='TIMED_OUT'" "$xml")
+          sobrevivientes=$(grep -c "status='SURVIVED'" "$xml")
+          sin_cobertura=$(grep -c "status='NO_COVERAGE'" "$xml")
+          {
+            echo "### Mutation testing (PIT)"
+            echo ""
+            echo "| Generados | Detectados | Sobrevivientes | Sin cobertura | Mutation score |"
+            echo "| --- | --- | --- | --- | --- |"
+            echo "| $total | $detectados | $sobrevivientes | $sin_cobertura | $(awk -v d="$detectados" -v t="$total" 'BEGIN { printf "%.1f", (t > 0 ? 100 * d / t : 0) }') % |"
+            echo ""
+            echo "Umbral de la entrega final: 60 %."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Subir reporte de PIT
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pit-reporte
+          path: aurea-backend/target/pit-reports/
+          if-no-files-found: ignore
+
   proveedor-soap:
     name: Proveedor SOAP (Maven)
     runs-on: ubuntu-latest

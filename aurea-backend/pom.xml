@@ -167,6 +167,51 @@
 					</execution>
 				</executions>
 			</plugin>
+			<!--
+				Mutation testing (PIT) sobre la capa de negocio. No corre en "verify": se ejecuta aparte con
+				  mvnw test-compile org.pitest:pitest-maven:mutationCoverage
+				Reporte en target/pit-reports/index.html. Falla si el mutation score queda por debajo de 60 %.
+			-->
+			<plugin>
+				<groupId>org.pitest</groupId>
+				<artifactId>pitest-maven</artifactId>
+				<version>1.25.7</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.pitest</groupId>
+						<artifactId>pitest-junit5-plugin</artifactId>
+						<version>1.2.3</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+					<targetClasses>
+						<param>com.joyeriaEcommerce.AureaTPO.*.negocio.*</param>
+					</targetClasses>
+					<targetTests>
+						<param>com.joyeriaEcommerce.AureaTPO.*</param>
+					</targetTests>
+					<excludedTestClasses>
+						<!-- Arquitectura no ejercita lógica; el eval y la integración real dependen de servicios externos. -->
+						<param>com.joyeriaEcommerce.AureaTPO.arquitectura.*</param>
+						<param>com.joyeriaEcommerce.AureaTPO.productos.negocio.EvalDescripcionProductoTests</param>
+						<param>com.joyeriaEcommerce.AureaTPO.reposiciones.IntegracionRealTests</param>
+					</excludedTestClasses>
+					<mutators>
+						<mutator>DEFAULTS</mutator>
+					</mutators>
+					<threads>4</threads>
+					<timeoutConstant>8000</timeoutConstant>
+					<mutationThreshold>60</mutationThreshold>
+					<outputFormats>
+						<format>HTML</format>
+						<format>XML</format>
+					</outputFormats>
+					<timestampedReports>false</timestampedReports>
+					<jvmArgs>
+						<value>-XX:+EnableDynamicAgentLoading</value>
+					</jvmArgs>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 
