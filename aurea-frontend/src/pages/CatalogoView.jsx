@@ -1,6 +1,6 @@
 import ProductCard from "../components/ProductCard";
 
-export default function CatalogoView({ joyas, categorias, categoriaFiltro, searchFiltro, sortFiltro, setFiltro, clearFiltros }) {
+export default function CatalogoView({ joyas, categorias, categoriaFiltro, searchFiltro, sortFiltro, precioMinimo, precioMaximo, setFiltro, clearFiltros }) {
   return (
     <>
       <section className="w-full bg-surface-container-low border-b border-outline-variant/30 py-10 lg:py-14">
@@ -106,6 +106,32 @@ export default function CatalogoView({ joyas, categorias, categoriaFiltro, searc
                 </div>
               )}
             </div>
+
+            <div className="border-t border-outline-variant/40 pt-5">
+              <h3 className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant mb-3">
+                Rango de precios
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="font-label-sm text-label-sm text-on-surface-variant">
+                  Desde
+                  <span className="relative mt-1 block">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
+                    <input type="number" min="0" step="5000" inputMode="numeric" value={precioMinimo} onChange={(event) => setFiltro("precioMin", event.target.value)} placeholder="Min." aria-label="Precio mínimo" className="w-full rounded border border-outline-variant bg-surface-container-lowest py-2 pl-7 pr-2 text-body-sm text-on-surface outline-none focus:border-primary" />
+                  </span>
+                </label>
+                <label className="font-label-sm text-label-sm text-on-surface-variant">
+                  Hasta
+                  <span className="relative mt-1 block">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
+                    <input type="number" min="0" step="5000" inputMode="numeric" value={precioMaximo} onChange={(event) => setFiltro("precioMax", event.target.value)} placeholder="Max." aria-label="Precio máximo" className="w-full rounded border border-outline-variant bg-surface-container-lowest py-2 pl-7 pr-2 text-body-sm text-on-surface outline-none focus:border-primary" />
+                  </span>
+                </label>
+              </div>
+              {precioMinimo && precioMaximo && Number(precioMinimo) > Number(precioMaximo) && (
+                <p className="mt-2 text-body-sm text-error" role="alert">El precio mínimo supera al máximo.</p>
+              )}
+            </div>
+
           </aside>
 
           <div className="lg:col-span-9">
