@@ -192,6 +192,13 @@ jobs:
           echo "API alcanzada a través del proxy, con el catálogo cargado."
           curl -fsS "http://localhost:8091/soap/proveedor?wsdl" | grep -q 'definitions' || falla "el WSDL del proveedor no está publicado"
           echo "WSDL del proveedor publicado."
+          cabeceras=$(curl -fsS -D - -o /dev/null http://localhost:5173/)
+          echo "$cabeceras" | grep -qi '^content-security-policy:' || falla "nginx no envía Content-Security-Policy"
+          echo "$cabeceras" | grep -qi '^strict-transport-security:' || falla "nginx no envía Strict-Transport-Security"
+          echo "$cabeceras" | grep -qi '^x-frame-options: DENY' || falla "nginx no envía X-Frame-Options"
+          [ "$(curl -fsS -D - -o /dev/null http://localhost:5173/api/productos | grep -ci '^x-content-type-options:')" = "1" ] \
+            || falla "la API debe enviar X-Content-Type-Options una sola vez"
+          echo "Cabeceras de seguridad presentes en el frontend y la API."
 
       - name: Logs de los servicios si algo falló
         if: failure()

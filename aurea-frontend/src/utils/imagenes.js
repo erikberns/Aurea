@@ -13,5 +13,24 @@ export function imagenDeRespaldo(categoria) {
   }
 }
 
+/**
+ * Si una foto externa deja de existir (por ejemplo, un 404 de Unsplash), se reemplaza una sola vez
+ * por la imagen predeterminada para que la tienda no muestre íconos rotos.
+ * Escucha en fase de captura porque el evento "error" de las imágenes no burbujea.
+ */
+export function activarRespaldoDeImagenes() {
+  window.addEventListener(
+    "error",
+    (evento) => {
+      const img = evento.target;
+      if (img instanceof HTMLImageElement && !img.dataset.respaldo && img.src !== PREDETERMINADA) {
+        img.dataset.respaldo = "1";
+        img.src = PREDETERMINADA;
+      }
+    },
+    true
+  );
+}
+
 export const imagenDeProducto = (producto) =>
   producto?.imageUrl || imagenDeRespaldo(producto?.category?.description);

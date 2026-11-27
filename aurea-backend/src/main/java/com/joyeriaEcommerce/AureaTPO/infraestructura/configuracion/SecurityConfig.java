@@ -56,6 +56,10 @@ public class SecurityConfig {
                                                 .requestMatchers(org.springframework.http.HttpMethod.GET,
                                                                 "/api/productos", "/api/productos/**")
                                                 .permitAll()
+                                                // HEAD es un GET sin cuerpo: el catálogo público también responde a HEAD.
+                                                .requestMatchers(org.springframework.http.HttpMethod.HEAD,
+                                                                "/api/productos", "/api/productos/**")
+                                                .permitAll()
                                                 .requestMatchers("/api/carrito/checkout").authenticated()
                                                 .requestMatchers("/api/carrito", "/api/carrito/items",
                                                                 "/api/carrito/items/*")
