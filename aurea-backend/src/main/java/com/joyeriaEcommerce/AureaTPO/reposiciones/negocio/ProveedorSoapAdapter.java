@@ -11,10 +11,13 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.XMLConstants;
 import org.xml.sax.InputSource;
 import org.w3c.dom.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Adapter SOAP 1.1 document/literal. No depende de clases del proyecto externo. */
 @Component
 public class ProveedorSoapAdapter implements IProveedorGateway {
+    private static final Logger log = LoggerFactory.getLogger(ProveedorSoapAdapter.class);
     private static final String NS = "urn:aurea:proveedor:v1";
     private static final String SOAP = "http://schemas.xmlsoap.org/soap/envelope/";
     /** Tras 3 llamadas seguidas sin respuesta, deja de llamar al proveedor durante 30 s. */
@@ -61,21 +64,21 @@ public class ProveedorSoapAdapter implements IProveedorGateway {
                     .POST(HttpRequest.BodyPublishers.ofString(xml)).build();
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (InterruptedException ex) {
-            circuito.registrarFallo();
+            fallo(operacion, "interrumpida");
             Thread.currentThread().interrupt();
             throw new ProveedorNoDisponibleException("Consulta al proveedor interrumpida", ex);
         } catch (java.io.IOException ex) {
-            circuito.registrarFallo();
+            fallo(operacion, ex.getClass().getSimpleName() + ": " + ex.getMessage());
             throw new ProveedorNoDisponibleException("El proveedor no respondió a tiempo. La solicitud quedó guardada; "
                     + "puede reintentar sin duplicarla.", ex);
         } catch (RuntimeException ex) {
-            circuito.registrarFallo();
+            fallo(operacion, ex.getClass().getSimpleName() + ": " + ex.getMessage());
             throw new ProveedorNoDisponibleException("No se pudo contactar al proveedor. Puede reintentar sin duplicar la solicitud.", ex);
         }
         // Un SOAP Fault de negocio viaja con HTTP 500 pero es una respuesta válida: no abre el circuito.
         String cuerpo = response.body() == null ? "" : response.body();
         if (response.statusCode() >= 500 && !cuerpo.contains("Fault>")) {
-            circuito.registrarFallo();
+            fallo(operacion, "HTTP " + response.statusCode() + " sin SOAP Fault");
         } else {
             circuito.registrarExito();
         }
@@ -113,6 +116,11 @@ public class ProveedorSoapAdapter implements IProveedorGateway {
         catch (Exception ex) {
             throw new ProveedorNoDisponibleException("No se pudo obtener una respuesta válida del proveedor. Puede reintentar sin duplicar la solicitud.", ex);
         }
+    }
+    /** Cuenta un fallo para el circuito y deja registro del motivo (nunca el contenido del pedido). */
+    private void fallo(String operacion, String motivo) {
+        circuito.registrarFallo();
+        log.warn("Proveedor SOAP: {} falló ({}); circuito {}", operacion, motivo, circuito.estado());
     }
     private static String texto(Element e, String nombre) {
         var nodes = e.getElementsByTagNameNS("*", nombre);

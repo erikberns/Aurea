@@ -311,6 +311,14 @@ jobs:
           set -a; . ./.env; set +a
           sh pruebas/contrato/schemathesis.sh
 
+      - name: Diagnóstico del proveedor SOAP si Schemathesis falló
+        if: ${{ failure() }}
+        run: |
+          echo "== Backend: fallos hacia el proveedor =="
+          docker compose logs --no-color backend | grep -i "Proveedor SOAP\|circuito\|ERROR" | tail -n 60 || true
+          echo "== Proveedor SOAP: últimas líneas =="
+          docker compose logs --no-color proveedor-soap | tail -n 60 || true
+
       - name: Subir resultados de las pruebas del sistema
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
