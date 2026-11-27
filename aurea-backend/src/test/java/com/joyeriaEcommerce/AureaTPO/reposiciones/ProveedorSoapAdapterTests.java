@@ -72,6 +72,16 @@ class ProveedorSoapAdapterTests {
         }
         assertThat(adapter.estadoCircuito()).isEqualTo(CircuitBreaker.Estado.CERRADO);
     }
+    @Test void unFaultDeClienteEsUnPedidoInvalidoYNoUnaCaidaDelProveedor() {
+        response = "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\"><s:Body><s:Fault>"
+                + "<faultcode>s:Client</faultcode><faultstring>Producto desconocido</faultstring></s:Fault></s:Body></s:Envelope>";
+        for (int i = 0; i < 4; i++) {
+            assertThatThrownBy(() -> adapter.disponibilidad("NO-EXISTE"))
+                    .isInstanceOf(SolicitudRechazadaPorProveedorException.class)
+                    .hasMessageContaining("Producto desconocido");
+        }
+        assertThat(adapter.estadoCircuito()).isEqualTo(CircuitBreaker.Estado.CERRADO);
+    }
     @Test void traduceSoapFaultSinConfundirloConAceptacion() {
         response = "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\"><s:Body><s:Fault><faultstring>Error</faultstring></s:Fault></s:Body></s:Envelope>";
         assertThatThrownBy(() -> adapter.disponibilidad("A")).isInstanceOf(ProveedorNoDisponibleException.class).hasMessageContaining("SOAP Fault");

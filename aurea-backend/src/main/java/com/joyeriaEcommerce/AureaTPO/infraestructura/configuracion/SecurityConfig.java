@@ -52,6 +52,10 @@ public class SecurityConfig {
                                                                 "/api/usuarios/autenticar", "/actuator/health",
                                                                 "/actuator/info")
                                                 .permitAll()
+                                                // Contrato OpenAPI público (solo lectura): lo usan las pruebas de contrato.
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                                                "/v3/api-docs", "/v3/api-docs/**")
+                                                .permitAll()
                                                 .requestMatchers("/actuator/**").hasRole("ADMIN")
                                                 .requestMatchers(org.springframework.http.HttpMethod.GET,
                                                                 "/api/productos", "/api/productos/**")

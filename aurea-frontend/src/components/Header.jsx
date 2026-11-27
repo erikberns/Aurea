@@ -61,7 +61,7 @@ export default function Header() {
             <Logo variant={theme === "ciruela" ? "light" : "dark"} className="h-8 md:h-9 w-auto" />
           </Link>
 
-          <nav className="hidden md:flex items-center gap-10">
+          <nav className="hidden lg:flex items-center gap-6 2xl:gap-10">
             {NAV_LINKS.map((link) => {
               const isActive = link.to === "/"
                 ? currentPath === "/"
@@ -83,7 +83,7 @@ export default function Header() {
             })}
           </nav>
 
-          <div className="hidden lg:flex items-center relative mx-6">
+          <div className="hidden xl:flex items-center relative mx-6">
             <input
               className="h-10 pl-9 pr-4 py-2 w-52 bg-surface-container-lowest border border-outline-variant/50 rounded-lg text-body-sm font-body-sm focus:w-64 focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all outline-none text-on-surface"
               placeholder="Buscar dijes, aros, tallas..."
@@ -99,14 +99,14 @@ export default function Header() {
 
           <div className="flex items-center gap-3 sm:gap-5">
 
-            <label className="hidden sm:flex items-center gap-2 text-on-surface-variant" title="Elegir tema">
+            <label className="hidden md:flex items-center gap-2 text-on-surface-variant" title="Elegir tema">
               <span className="material-symbols-outlined text-[18px]" aria-hidden="true">palette</span>
               <select aria-label="Tema de color" value={theme} onChange={(event) => setTheme(event.target.value)} className="max-w-32 bg-surface border border-outline-variant/50 rounded px-2 py-1 text-xs text-on-surface focus:border-primary outline-none">
                 {THEMES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
               </select>
             </label>
 
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm border border-outline-variant/30">
+            <div className="hidden 2xl:flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm border border-outline-variant/30">
               <span className="font-bold">ARS ($)</span>
             </div>
 
@@ -141,7 +141,7 @@ export default function Header() {
               <div className="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-semibold text-xs border border-primary-container/30">
                 {estaAutenticado ? usuario?.nombre?.slice(0, 2).toUpperCase() : "?"}
               </div>
-              <span className="hidden xl:inline-block font-label-md text-label-md text-on-surface">
+              <span className="hidden 2xl:inline-block font-label-md text-label-md text-on-surface">
                 {estaAutenticado ? usuario?.nombre : "Ingresar"}
               </span>
             </Link>
@@ -165,7 +165,7 @@ export default function Header() {
               aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
               aria-expanded={menuAbierto}
               aria-controls="menu-mobile"
-              className="md:hidden p-2 text-on-surface-variant hover:text-primary transition-colors"
+              className="xl:hidden p-2 text-on-surface-variant hover:text-primary transition-colors"
             >
               <span className="material-symbols-outlined text-[26px]">
                 {menuAbierto ? "close" : "menu"}
@@ -178,7 +178,7 @@ export default function Header() {
         {menuAbierto && (
           <div
             id="menu-mobile"
-            className="md:hidden border-t border-outline-variant/30 bg-surface px-6 py-5 shadow-md"
+            className="xl:hidden border-t border-outline-variant/30 bg-surface px-6 py-5 shadow-md"
           >
             <nav className="flex flex-col gap-4" aria-label="Navegación móvil">
 

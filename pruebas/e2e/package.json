@@ -1,0 +1,20 @@
+{
+  "name": "aurea-pruebas-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Pruebas contra el sistema levantado con docker compose: E2E y responsive (Playwright), Lighthouse, colección de API (Newman) y contrato SOAP.",
+  "scripts": {
+    "e2e": "playwright test --project=e2e",
+    "responsive": "playwright test --project=responsive-celular --project=responsive-tablet --project=responsive-escritorio",
+    "todo": "playwright test",
+    "lighthouse": "node lighthouse.mjs",
+    "instalar-navegador": "playwright install --with-deps chromium",
+    "newman": "node newman.mjs",
+    "contrato-wsdl": "node ../contrato/wsdl.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "lighthouse": "^12.8.0",
+    "newman": "^6.2.1"
+  }
+}

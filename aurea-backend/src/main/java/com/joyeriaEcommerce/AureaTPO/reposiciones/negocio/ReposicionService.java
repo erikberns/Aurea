@@ -28,7 +28,12 @@ public class ReposicionService implements IReposiciones {
         this.productos = productos; this.json = json; tx = new TransactionTemplate(manager);
     }
     public List<ReposicionDTO> listar() { return reposiciones.findAllByOrderByCreadaDesc().stream().map(this::dto).toList(); }
-    public ResultadoProveedorDTO disponibilidad(String codigo) { return proveedor.disponibilidad(codigo); }
+    public ResultadoProveedorDTO disponibilidad(String codigo) {
+        // Mismo formato que exige solicitar(): un código inválido es error del cliente (400), no del proveedor.
+        if (codigo == null || !codigo.matches("[A-Z0-9-]{1,64}"))
+            throw new IllegalArgumentException("Código de producto inválido");
+        return proveedor.disponibilidad(codigo);
+    }
     public ReposicionDTO solicitar(String id, Long productoId, String codigo, int cantidad) {
         UUID.fromString(id);
         if (cantidad <= 0 || cantidad > 10000 || codigo == null || !codigo.matches("[A-Z0-9-]{1,64}"))

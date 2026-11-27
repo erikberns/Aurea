@@ -175,4 +175,10 @@ class ReposicionTests {
         assertThatThrownBy(() -> reposiciones.recibir(UUID.randomUUID().toString())).isInstanceOf(RuntimeException.class);
         assertThatThrownBy(() -> reposiciones.sincronizar(UUID.randomUUID().toString())).isInstanceOf(RuntimeException.class);
     }
+    @Test void disponibilidadConCodigoInvalidoEsErrorDelClienteSinLlamarAlProveedor() {
+        assertThatThrownBy(() -> reposiciones.disponibilidad("")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> reposiciones.disponibilidad("anillo plata")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> reposiciones.disponibilidad(null)).isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(proveedor);
+    }
 }

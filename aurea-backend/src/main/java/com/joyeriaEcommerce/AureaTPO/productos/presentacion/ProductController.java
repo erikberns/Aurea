@@ -74,7 +74,7 @@ public class ProductController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ProductDTO> createProduct(@RequestBody CreateProductRequest request) {
+    public ResponseEntity<ProductDTO> createProduct(@jakarta.validation.Valid @RequestBody CreateProductRequest request) {
         ProductDTO newProduct = productService.createProduct(
                 request.name(),
                 request.description(),
@@ -114,7 +114,7 @@ public class ProductController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateProduct(
             @PathVariable Long id,
-            @RequestBody CreateProductRequest request,
+            @jakarta.validation.Valid @RequestBody CreateProductRequest request,
             @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
         ResponseEntity<ProblemDetail> fallo = verificarIfMatch(id, ifMatch, "/api/productos/" + id);
         if (fallo != null) return fallo;

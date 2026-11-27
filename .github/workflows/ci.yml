@@ -189,9 +189,9 @@ jobs:
         run: npm run build
 
   sistema-completo:
-    name: Sistema completo (docker compose, G1)
+    name: Sistema completo (docker compose, G1) y pruebas sobre el sistema
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 35
     needs: [ backend, proveedor-soap, frontend ]
     steps:
       - name: Checkout
@@ -224,6 +224,7 @@ jobs:
         run: docker compose up --build -d
 
       - name: Esperar a que el backend esté listo
+        id: listo
         run: |
           for i in $(seq 1 60); do
             if curl -fsS http://localhost:8080/actuator/health | grep -q '"UP"'; then echo "Backend listo."; exit 0; fi
@@ -248,6 +249,76 @@ jobs:
             || falla "la API debe enviar X-Content-Type-Options una sola vez"
           echo "Cabeceras de seguridad presentes en el frontend y la API."
 
+      # ---------- Pruebas sobre el sistema levantado (carpeta pruebas/) ----------
+      # Cada paso corre aunque falle el anterior, para ver el panorama completo en una sola corrida.
+      - name: Preparar Node, Playwright, Lighthouse y Newman
+        if: ${{ !cancelled() && steps.listo.outcome == 'success' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Instalar dependencias de las pruebas
+        if: ${{ !cancelled() && steps.listo.outcome == 'success' }}
+        working-directory: pruebas/e2e
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npx playwright install --with-deps chromium
+
+      - name: Contrato SOAP contra el WSDL
+        if: ${{ !cancelled() && steps.listo.outcome == 'success' }}
+        working-directory: pruebas/e2e
+        run: npm run contrato-wsdl
+
+      - name: Colección de API (Newman)
+        if: ${{ !cancelled() && steps.listo.outcome == 'success' }}
+        working-directory: pruebas/e2e
+        run: |
+          set -a; . ../../.env; set +a
+          npm run newman
+
+      - name: Escenarios de punta a punta (Playwright)
+        if: ${{ !cancelled() && steps.listo.outcome == 'success' }}
+        working-directory: pruebas/e2e
+        run: |
+          set -a; . ../../.env; set +a
+          npm run e2e
+
+      - name: Responsive en 360, 768 y 1280 px (Playwright)
+        if: ${{ !cancelled() && steps.listo.outcome == 'success' }}
+        working-directory: pruebas/e2e
+        run: npm run responsive
+
+      - name: Accesibilidad (Lighthouse, 90 o más)
+        if: ${{ !cancelled() && steps.listo.outcome == 'success' }}
+        working-directory: pruebas/e2e
+        run: npm run lighthouse
+
+      - name: Carga de humo (k6, 5 usuarios durante 30 s)
+        if: ${{ !cancelled() && steps.listo.outcome == 'success' }}
+        run: |
+          mkdir -p pruebas/resultados && chmod 777 pruebas/resultados
+          docker run --rm --network host -v "$PWD/pruebas:/pruebas" -e PERFIL=humo -e BASE_URL=http://localhost:5173 \
+            grafana/k6 run /pruebas/k6/carga.js
+
+      - name: Escaneo pasivo de seguridad (ZAP baseline, 0 alertas High)
+        if: ${{ !cancelled() && steps.listo.outcome == 'success' }}
+        run: MODO=baseline sh pruebas/zap/zap.sh
+
+      - name: Contrato REST contra OpenAPI (Schemathesis)
+        # Último: con el token de administrador genera datos de prueba (productos, pedidos) que alterarían a los demás.
+        if: ${{ !cancelled() && steps.listo.outcome == 'success' }}
+        run: |
+          set -a; . ./.env; set +a
+          sh pruebas/contrato/schemathesis.sh
+
+      - name: Subir resultados de las pruebas del sistema
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: pruebas-sistema
+          path: pruebas/resultados/
+          if-no-files-found: ignore
+
       - name: Logs de los servicios si algo falló
         if: failure()
         run: docker compose logs --no-color --tail=200
@@ -255,6 +326,37 @@ jobs:
       - name: Bajar el entorno
         if: always()
         run: docker compose down -v
+
+  dependencias:
+    name: Dependencias sin CVE críticas (Trivy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Construir los .jar (Trivy lee las librerías incluidas en cada uno)
+        run: |
+          (cd aurea-backend && sh ./mvnw -B -q package -DskipTests)
+          (cd proveedor-soap && mvn -B -q package -DskipTests)
+
+      - name: Escanear los .jar y el package-lock.json del frontend
+        run: SOLO_DEPENDENCIAS=1 sh pruebas/trivy.sh
+
+      - name: Subir el reporte de Trivy
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-reporte
+          path: pruebas/resultados/trivy/
+          if-no-files-found: ignore
 
   secretos:
     name: Secretos en el historial (gitleaks, G6)

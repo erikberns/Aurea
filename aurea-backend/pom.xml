@@ -28,6 +28,14 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
+		<!--
+			Versiones corregidas sobre las que trae Spring Boot 4.1.1, por CVE detectadas con Trivy (27/11/2026).
+			Revisar y quitar cuando una versión nueva de Spring Boot ya las incluya.
+		-->
+		<tomcat.version>11.0.25</tomcat.version>
+		<jackson-bom.version>3.1.7</jackson-bom.version>
+		<jackson-2-bom.version>2.21.7</jackson-2-bom.version>
+		<rabbit-amqp-client.version>5.34.0</rabbit-amqp-client.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -49,6 +57,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+		<!-- Contrato OpenAPI 3.1 generado desde los controladores (GET /v3/api-docs), sin Swagger UI. -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+			<version>3.2.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

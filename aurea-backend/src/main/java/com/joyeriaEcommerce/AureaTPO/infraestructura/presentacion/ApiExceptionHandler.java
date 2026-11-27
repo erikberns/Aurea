@@ -19,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
@@ -111,6 +112,16 @@ public class ApiExceptionHandler {
     ResponseEntity<ProblemDetail> concurrencia(ObjectOptimisticLockingFailureException ex, HttpServletRequest request) {
         return problem(HttpStatus.CONFLICT, "conflicto-concurrencia", "Conflicto de concurrencia",
                 "El recurso fue modificado por otro usuario. Por favor, recargue la página.", request, Map.of());
+    }
+
+    /**
+     * Última barrera: la base rechazó los datos (largo, formato o unicidad) aunque pasaron la validación.
+     * Responde 400 sin mostrar el SQL ni el nombre de tablas o columnas.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    ResponseEntity<ProblemDetail> datosRechazados(DataIntegrityViolationException ex, HttpServletRequest request) {
+        return problem(HttpStatus.BAD_REQUEST, "datos-invalidos", "Datos inválidos",
+                "Los datos enviados no cumplen las restricciones de largo, formato o unicidad.", request, Map.of());
     }
 
     @ExceptionHandler(IllegalStateException.class)

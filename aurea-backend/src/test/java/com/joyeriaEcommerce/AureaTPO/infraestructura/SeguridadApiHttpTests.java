@@ -226,6 +226,13 @@ class SeguridadApiHttpTests {
     }
 
     @Test
+    void laSesionSinUsuarioResponde204SinCuerpo() throws Exception {
+        mvc.perform(get("/api/usuarios/sesion"))
+                .andExpect(status().isNoContent())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(""));
+    }
+
+    @Test
     void elCatalogoPublicoRespondeAHeadIgualQueAGet() throws Exception {
         mvc.perform(head("/api/productos")).andExpect(status().isOk());
         mvc.perform(head("/api/ordenes")).andExpect(status().isUnauthorized());
@@ -248,6 +255,30 @@ class SeguridadApiHttpTests {
                 .andExpect(status().isBadRequest())
                 .andReturn().getResponse().getContentAsString();
         assertThat(cuerpo).doesNotContain("Exception").doesNotContain("at com.").doesNotContain("jackson");
+    }
+
+    @Test
+    void textosDemasiadoLargosOConCaracteresDeControlResponden400YNo500() throws Exception {
+        String largo = "a".repeat(70_000);
+        mvc.perform(post("/api/productos").header(HttpHeaders.AUTHORIZATION, admin()).contentType("application/json")
+                        .content("{\"name\":\"" + largo + "\",\"price\":100.0,\"stock\":1}"))
+                .andExpect(status().isBadRequest());
+        Cliente cliente = registrar();
+        mvc.perform(patch("/api/usuarios/" + cliente.id()).header(HttpHeaders.AUTHORIZATION, cliente.bearer())
+                        .contentType("application/json").content("{\"nombre\":\"" + largo + "\",\"apellido\":\"Y\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/usuarios").with(csrf()).contentType("application/json")
+                        .content("{\"nombre\":\"Ana\",\"apellido\":\"Nul\\u0000\",\"email\":\"" + UUID.randomUUID()
+                                + "@example.com\",\"contrasena\":\"ClaveSegura123\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void unPedidoMultipartSinBoundaryResponde415YNo500() throws Exception {
+        mvc.perform(post("/api/productos").header(HttpHeaders.AUTHORIZATION, admin())
+                        .header(HttpHeaders.CONTENT_TYPE, "multipart/form-data")
+                        .content("x"))
+                .andExpect(status().isUnsupportedMediaType());
     }
 
     @Test

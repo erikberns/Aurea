@@ -10,7 +10,9 @@ ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 RUN npm run build
 
 # Etapa 2: archivos estáticos servidos por nginx
-FROM nginx:1.27-alpine
+# Rama estable de nginx sobre Alpine; apk upgrade aplica los parches de seguridad publicados después de la imagen.
+FROM nginx:stable-alpine
+RUN apk upgrade --no-cache
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80

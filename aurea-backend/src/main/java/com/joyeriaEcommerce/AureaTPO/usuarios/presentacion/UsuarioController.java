@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -129,12 +130,13 @@ public class UsuarioController {
         return usuarios.asignarRol(usuarioId, request.get("rol"));
     }
 
+    /** Perfil de la sesión actual: 200 con el usuario, o 204 sin cuerpo si nadie inició sesión. */
     @GetMapping("/sesion")
-    public UsuarioDTO sesion(Authentication auth) {
+    public ResponseEntity<UsuarioDTO> sesion(Authentication auth) {
         if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
-            return null;
+            return ResponseEntity.noContent().build();
         }
-        return usuarios.consultarPerfilPorEmail(auth.getName());
+        return ResponseEntity.ok(usuarios.consultarPerfilPorEmail(auth.getName()));
     }
 
     private void guardarSesionYEmitirJwt(

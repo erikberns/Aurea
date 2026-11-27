@@ -89,8 +89,17 @@ public class ProveedorSoapAdapter implements IProveedorGateway {
             factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
             factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
             var document = factory.newDocumentBuilder().parse(new InputSource(new StringReader(response.body())));
-            if (document.getElementsByTagNameNS(SOAP, "Fault").getLength() > 0)
+            if (document.getElementsByTagNameNS(SOAP, "Fault").getLength() > 0) {
+                // faultcode Client: el proveedor rechazó un dato del pedido (por ejemplo, un código inexistente).
+                var codigos = document.getElementsByTagName("faultcode");
+                String codigo = codigos.getLength() == 1 ? codigos.item(0).getTextContent().trim() : "";
+                if (codigo.endsWith("Client")) {
+                    var textos = document.getElementsByTagName("faultstring");
+                    String motivo = textos.getLength() == 1 ? textos.item(0).getTextContent().trim() : "dato inválido";
+                    throw new SolicitudRechazadaPorProveedorException("El proveedor rechazó la consulta: " + motivo);
+                }
                 throw new ProveedorNoDisponibleException("El proveedor devolvió un SOAP Fault. Revise el código o reintente con la misma solicitud.", null);
+            }
             if (response.statusCode() != 200
                     || document.getElementsByTagNameNS(NS, operacion + "Response").getLength() != 1)
                 throw new IllegalArgumentException("Contrato SOAP inesperado");
@@ -100,7 +109,7 @@ public class ProveedorSoapAdapter implements IProveedorGateway {
             return new ResultadoProveedorDTO(texto(resultado, "idSolicitud"), texto(resultado, "codigoProducto"),
                     Integer.parseInt(texto(resultado, "cantidad")), texto(resultado, "estado"),
                     Integer.parseInt(texto(resultado, "disponibles")));
-        } catch (ProveedorNoDisponibleException ex) { throw ex; }
+        } catch (ProveedorNoDisponibleException | SolicitudRechazadaPorProveedorException ex) { throw ex; }
         catch (Exception ex) {
             throw new ProveedorNoDisponibleException("No se pudo obtener una respuesta válida del proveedor. Puede reintentar sin duplicar la solicitud.", ex);
         }
