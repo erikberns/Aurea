@@ -370,9 +370,8 @@ jobs:
     name: Secretos en el historial (gitleaks, G6)
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # TEMPORAL: informa sin romper el pipeline mientras el equipo decide cómo resolver G6.
-    # Quitar esta línea una vez limpio el historial o documentadas las excepciones.
-    continue-on-error: true
+    # Bloquea el pipeline si aparece un secreto en cualquier commit. Los hallazgos revisados y aceptados
+    # (marcadores de ejemplo, no secretos) están en .gitleaksignore, con su justificación.
     steps:
       - name: Checkout con todo el historial
         uses: actions/checkout@v4
@@ -383,7 +382,7 @@ jobs:
         # --redact oculta el valor de cualquier secreto encontrado en el log.
         run: |
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest \
-            detect --source /repo --redact --verbose --report-format json --report-path /repo/gitleaks-report.json
+            detect --source /repo --gitleaks-ignore-path /repo/.gitleaksignore --redact --verbose --report-format json --report-path /repo/gitleaks-report.json
 
       - name: Subir el reporte de gitleaks
         if: always()
