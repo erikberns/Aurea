@@ -1,6 +1,0 @@
-# Hallazgos de gitleaks revisados y aceptados (G6). Cada línea es la huella (fingerprint) de un hallazgo.
-#
-# 5020fb5, aurea-backend/.env.example línea 10: JWT_SECRET con el texto de ejemplo "cambiar-...".
-# Es un marcador para que cada persona escriba su propia clave en .env; nunca fue la clave de ningún entorno.
-# La versión actual de .env.example ya no lo tiene (dice COMPLETAR) y JwtService exige JWT_SECRET sin valor por defecto.
-5020fb59c8e891598c0dd98df86dfc184cd6a9a5:aurea-backend/.env.example:generic-api-key:10
